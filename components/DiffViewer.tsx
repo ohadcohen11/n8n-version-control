@@ -2,9 +2,14 @@
 
 import styled from 'styled-components';
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from './Card';
 import StatusBadge from './StatusBadge';
 import { Button } from './Button';
+import Toast from './Toast';
+
+const SyncButton = styled(Button)`
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+`;
 
 const WorkflowList = styled.div`
   display: flex;
@@ -117,11 +122,67 @@ interface Comparison {
 
 interface DiffViewerProps {
   comparisons: Comparison[];
+  onSync?: () => void;
 }
 
-export default function DiffViewer({ comparisons }: DiffViewerProps) {
+export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message?: string;
+  } | null>(null);
+
+  const handleSync = async (comparison: Comparison, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to sync "${comparison.workflowName}" from GitHub to n8n?`)) {
+      return;
+    }
+
+    setSyncing(comparison.filename);
+
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: comparison.filename,
+          workflowId: comparison.workflowId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToast({
+          type: 'success',
+          title: 'Workflow Synced',
+          message: `Successfully synced "${comparison.workflowName}" from GitHub to n8n`,
+        });
+        if (onSync) onSync();
+      } else {
+        setToast({
+          type: 'error',
+          title: 'Sync Failed',
+          message: data.details || data.error,
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing workflow:', error);
+      setToast({
+        type: 'error',
+        title: 'Sync Failed',
+        message: 'An unexpected error occurred. Check console for details.',
+      });
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   const filteredComparisons = comparisons.filter((comp) => {
     if (filter === 'all') return true;
@@ -150,6 +211,14 @@ export default function DiffViewer({ comparisons }: DiffViewerProps) {
 
   return (
     <>
+      {toast && (
+        <Toast
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
       <FilterBar>
         <Button
           variant={filter === 'all' ? 'primary' : 'secondary'}
@@ -208,7 +277,16 @@ export default function DiffViewer({ comparisons }: DiffViewerProps) {
                 <WorkflowName>{comparison.workflowName}</WorkflowName>
                 <WorkflowMeta>
                   <StatusBadge status={comparison.status} />
-                  <span>{comparison.filename}</span>
+                  {(comparison.status === 'modified' || comparison.status === 'only_in_github') && (
+                    <SyncButton
+                      onClick={(e) => handleSync(comparison, e)}
+                      disabled={syncing === comparison.filename}
+                      variant="primary"
+                      size="small"
+                    >
+                      {syncing === comparison.filename ? 'Syncing...' : '↓ Pull from GitHub'}
+                    </SyncButton>
+                  )}
                 </WorkflowMeta>
               </WorkflowHeader>
 

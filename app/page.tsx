@@ -210,7 +210,7 @@ export default function Home() {
                     <CardTitle>Git Changes</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <DiffViewer comparisons={comparisons} />
+                    <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
                   </CardContent>
                 </Card>
               </Section>
