@@ -5,6 +5,7 @@ import { useState } from 'react';
 import StatusBadge from './StatusBadge';
 import { Button } from './Button';
 import Toast from './Toast';
+import ConfirmModal from './ConfirmModal';
 
 const SyncButton = styled(Button)`
   font-size: 0.75rem;
@@ -134,14 +135,34 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     title: string;
     message?: string;
   } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    comparison: Comparison | null;
+    action: 'pull' | 'push' | null;
+  }>({ isOpen: false, comparison: null, action: null });
 
-  const handleSync = async (comparison: Comparison, e: React.MouseEvent) => {
+  const handlePullClick = (comparison: Comparison, e: React.MouseEvent) => {
     e.stopPropagation();
+    setConfirmModal({ isOpen: true, comparison, action: 'pull' });
+  };
 
-    if (!confirm(`Are you sure you want to sync "${comparison.workflowName}" from GitHub to n8n?`)) {
-      return;
+  const handlePushClick = (comparison: Comparison, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmModal({ isOpen: true, comparison, action: 'push' });
+  };
+
+  const handleConfirmAction = async () => {
+    const { comparison, action } = confirmModal;
+    if (!comparison || !action) return;
+
+    if (action === 'pull') {
+      await handlePull(comparison);
+    } else if (action === 'push') {
+      await handlePush(comparison);
     }
+  };
 
+  const handlePull = async (comparison: Comparison) => {
     setSyncing(comparison.filename);
 
     try {
@@ -184,6 +205,51 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     }
   };
 
+  const handlePush = async (comparison: Comparison) => {
+    if (!comparison.workflowId) return;
+
+    setSyncing(comparison.filename);
+
+    try {
+      const response = await fetch('/api/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId: comparison.workflowId,
+          filename: comparison.filename,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToast({
+          type: 'success',
+          title: 'Pushed to GitHub',
+          message: `Successfully pushed "${comparison.workflowName}" to GitHub`,
+        });
+        if (onSync) onSync();
+      } else {
+        setToast({
+          type: 'error',
+          title: 'Push Failed',
+          message: data.details || data.error,
+        });
+      }
+    } catch (error) {
+      console.error('Error pushing workflow:', error);
+      setToast({
+        type: 'error',
+        title: 'Push Failed',
+        message: 'An unexpected error occurred. Check console for details.',
+      });
+    } finally {
+      setSyncing(null);
+    }
+  };
+
   const filteredComparisons = comparisons.filter((comp) => {
     if (filter === 'all') return true;
     return comp.status === filter;
@@ -219,6 +285,26 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
           onClose={() => setToast(null)}
         />
       )}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={
+          confirmModal.action === 'pull'
+            ? 'Pull Workflow from GitHub'
+            : 'Push Workflow to GitHub'
+        }
+        message={
+          confirmModal.action === 'pull'
+            ? `Are you sure you want to pull "${confirmModal.comparison?.workflowName}" from GitHub to n8n? This will overwrite the current version in n8n.`
+            : `Are you sure you want to push "${confirmModal.comparison?.workflowName}" from n8n to GitHub? This will ${confirmModal.comparison?.status === 'only_in_n8n' ? 'create a new file' : 'update the existing file'} in GitHub.`
+        }
+        confirmText={
+          confirmModal.action === 'pull' ? '↓ Pull from GitHub' : '↑ Push to GitHub'
+        }
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmModal({ isOpen: false, comparison: null, action: null })}
+      />
       <FilterBar>
         <Button
           variant={filter === 'all' ? 'primary' : 'secondary'}
@@ -277,14 +363,28 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
                 <WorkflowName>{comparison.workflowName}</WorkflowName>
                 <WorkflowMeta>
                   <StatusBadge status={comparison.status} />
+
+                  {/* Pull from GitHub button - for modified or only_in_github */}
                   {(comparison.status === 'modified' || comparison.status === 'only_in_github') && (
                     <SyncButton
-                      onClick={(e) => handleSync(comparison, e)}
+                      onClick={(e) => handlePullClick(comparison, e)}
+                      disabled={syncing === comparison.filename}
+                      variant="secondary"
+                      size="small"
+                    >
+                      {syncing === comparison.filename ? 'Syncing...' : '↓ Pull from GitHub'}
+                    </SyncButton>
+                  )}
+
+                  {/* Push to GitHub button - for modified or only_in_n8n */}
+                  {(comparison.status === 'modified' || comparison.status === 'only_in_n8n') && comparison.workflowId && (
+                    <SyncButton
+                      onClick={(e) => handlePushClick(comparison, e)}
                       disabled={syncing === comparison.filename}
                       variant="primary"
                       size="small"
                     >
-                      {syncing === comparison.filename ? 'Syncing...' : '↓ Pull from GitHub'}
+                      {syncing === comparison.filename ? 'Syncing...' : '↑ Push to GitHub'}
                     </SyncButton>
                   )}
                 </WorkflowMeta>
