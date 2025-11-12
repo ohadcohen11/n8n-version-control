@@ -1,65 +1,231 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import Layout from '../components/Layout';
+import DashboardStats from '../components/DashboardStats';
+import DiffViewer from '../components/DiffViewer';
+import CommitsView from '../components/CommitsView';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/Card';
+import { Button } from '../components/Button';
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+`;
+
+const Section = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+`;
+
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--danger);
+  text-align: center;
+`;
+
+const Tabs = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+`;
+
+const Tab = styled.button<{ $active: boolean }>`
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: ${(props) => (props.$active ? 'var(--primary)' : 'var(--text-muted)')};
+  border-bottom: 2px solid
+    ${(props) => (props.$active ? 'var(--primary)' : 'transparent')};
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--primary);
+  }
+`;
+
+const RefreshButton = styled(Button)`
+  &:disabled {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+interface Comparison {
+  workflowId: string | null;
+  workflowName: string;
+  filename: string;
+  status: 'synced' | 'modified' | 'only_in_n8n' | 'only_in_github';
+  diff: string | null;
+  inGitHub: boolean;
+  inN8n: boolean;
+}
+
+interface Commit {
+  sha: string;
+  commit: {
+    message: string;
+    author: {
+      name: string;
+      email: string;
+      date: string;
+    };
+  };
+  author?: {
+    login: string;
+    avatar_url: string;
+  };
+}
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'commits'>('overview');
+  const [comparisons, setComparisons] = useState<Comparison[]>([]);
+  const [commits, setCommits] = useState<Commit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setError(null);
+      const [compareRes, commitsRes] = await Promise.all([
+        fetch('/api/compare'),
+        fetch('/api/github/commits'),
+      ]);
+
+      if (!compareRes.ok || !commitsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const compareData = await compareRes.json();
+      const commitsData = await commitsRes.json();
+
+      setComparisons(compareData.comparisons || []);
+      setCommits(commitsData || []);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(
+        'Failed to fetch data. Please check your API credentials in .env.local'
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  const stats = {
+    totalWorkflows: comparisons.length,
+    synced: comparisons.filter((c) => c.status === 'synced').length,
+    modified: comparisons.filter((c) => c.status === 'modified').length,
+    onlyInN8n: comparisons.filter((c) => c.status === 'only_in_n8n').length,
+    onlyInGitHub: comparisons.filter((c) => c.status === 'only_in_github').length,
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <Layout>
+      <Container>
+        <SectionHeader>
+          <SectionTitle>Dashboard</SectionTitle>
+          <RefreshButton
+            onClick={handleRefresh}
+            disabled={refreshing}
+            size="medium"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            {refreshing ? '⟳' : '↻'} Refresh
+          </RefreshButton>
+        </SectionHeader>
+
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+
+        {loading ? (
+          <LoadingSpinner message="Loading dashboard data..." />
+        ) : (
+          <>
+            <DashboardStats {...stats} />
+
+            <Tabs>
+              <Tab
+                $active={activeTab === 'overview'}
+                onClick={() => setActiveTab('overview')}
+              >
+                Workflow Changes
+              </Tab>
+              <Tab
+                $active={activeTab === 'commits'}
+                onClick={() => setActiveTab('commits')}
+              >
+                Recent Commits
+              </Tab>
+            </Tabs>
+
+            {activeTab === 'overview' ? (
+              <Section>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Git Changes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DiffViewer comparisons={comparisons} />
+                  </CardContent>
+                </Card>
+              </Section>
+            ) : (
+              <Section>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Commits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CommitsView commits={commits} />
+                  </CardContent>
+                </Card>
+              </Section>
+            )}
+          </>
+        )}
+      </Container>
+    </Layout>
   );
 }
