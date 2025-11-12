@@ -1,71 +1,9 @@
 'use client';
 
-import styled from 'styled-components';
+import { Box, AppBar, Toolbar, Typography, Container } from '@mui/material';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import WorkflowIcon from '@mui/icons-material/AccountTree';
 import { ReactNode } from 'react';
-
-const LayoutWrapper = styled.div`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Header = styled.header`
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 1.5rem;
-`;
-
-const HeaderContent = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const Title = styled.h1`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.7;
-      transform: scale(1.2);
-    }
-  }
-`;
-
-const Subtitle = styled.span`
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  font-weight: 400;
-`;
-
-const Main = styled.main`
-  flex: 1;
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 1.5rem;
-`;
 
 interface LayoutProps {
   children: ReactNode;
@@ -73,18 +11,41 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <LayoutWrapper>
-      <Header>
-        <HeaderContent>
-          <div>
-            <Title>
-              n8n Git Dashboard
-              <Subtitle>/ workflow sync manager</Subtitle>
-            </Title>
-          </div>
-        </HeaderContent>
-      </Header>
-      <Main>{children}</Main>
-    </LayoutWrapper>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <AppBar position="static" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Toolbar>
+          <WorkflowIcon sx={{ mr: 2, fontSize: 32 }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
+            n8n Git Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+            Workflow Sync Manager
+          </Typography>
+          <GitHubIcon sx={{ ml: 2 }} />
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        {children}
+      </Container>
+
+      <Box
+        component="footer"
+        sx={{
+          py: 3,
+          px: 2,
+          mt: 'auto',
+          backgroundColor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Container maxWidth="xl">
+          <Typography variant="body2" color="text.secondary" align="center">
+            n8n Git Dashboard - Sync your workflows with GitHub
+          </Typography>
+        </Container>
+      </Box>
+    </Box>
   );
 }

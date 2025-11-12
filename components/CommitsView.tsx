@@ -1,84 +1,14 @@
 'use client';
 
-import styled from 'styled-components';
-import { Card } from './Card';
-
-const CommitsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const CommitItem = styled.div`
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.875rem 1rem;
-  display: flex;
-  gap: 0.875rem;
-  align-items: flex-start;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--border);
-    background: var(--bg-tertiary);
-  }
-`;
-
-const CommitAvatar = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  flex-shrink: 0;
-`;
-
-const CommitContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const CommitMessage = styled.div`
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 0.375rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const CommitMeta = styled.div`
-  display: flex;
-  gap: 0.875rem;
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  flex-wrap: wrap;
-`;
-
-const CommitAuthor = styled.span`
-  color: var(--text-secondary);
-`;
-
-const CommitSha = styled.code`
-  padding: 0.125rem 0.375rem;
-  background: var(--bg-primary);
-  border-radius: 4px;
-  font-size: 0.75rem;
-`;
-
-const CommitDate = styled.span``;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-muted);
-`;
+import {
+  Stack,
+  Paper,
+  Avatar,
+  Box,
+  Typography,
+  Chip,
+} from '@mui/material';
+import CommitIcon from '@mui/icons-material/Commit';
 
 interface Commit {
   sha: string;
@@ -125,32 +55,53 @@ export default function CommitsView({ commits }: CommitsViewProps) {
 
   if (commits.length === 0) {
     return (
-      <EmptyState>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-        <div>No commits found</div>
-      </EmptyState>
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <Typography variant="h3" sx={{ mb: 2 }}>📭</Typography>
+        <Typography color="text.secondary">No commits found</Typography>
+      </Box>
     );
   }
 
   return (
-    <CommitsList>
+    <Stack spacing={2}>
       {commits.map((commit) => (
-        <CommitItem key={commit.sha}>
-          <CommitAvatar>
+        <Paper
+          key={commit.sha}
+          sx={{
+            p: 2,
+            display: 'flex',
+            gap: 2,
+            alignItems: 'flex-start',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+        >
+          <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
             {getInitials(commit.commit.author.name)}
-          </CommitAvatar>
-          <CommitContent>
-            <CommitMessage>{commit.commit.message.split('\n')[0]}</CommitMessage>
-            <CommitMeta>
-              <CommitAuthor>
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 0.5 }} noWrap>
+              {commit.commit.message.split('\n')[0]}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Typography variant="body2" color="text.secondary">
                 {commit.author?.login || commit.commit.author.name}
-              </CommitAuthor>
-              <CommitSha>{commit.sha.slice(0, 7)}</CommitSha>
-              <CommitDate>{formatDate(commit.commit.author.date)}</CommitDate>
-            </CommitMeta>
-          </CommitContent>
-        </CommitItem>
+              </Typography>
+              <Chip
+                icon={<CommitIcon sx={{ fontSize: 14 }} />}
+                label={commit.sha.slice(0, 7)}
+                size="small"
+                sx={{ fontSize: '0.75rem', height: 24 }}
+              />
+              <Typography variant="body2" color="text.secondary">
+                {formatDate(commit.commit.author.date)}
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
       ))}
-    </CommitsList>
+    </Stack>
   );
 }

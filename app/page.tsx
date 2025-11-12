@@ -1,90 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import {
+  Box,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  Alert,
+  CircularProgress,
+  Stack,
+  IconButton,
+} from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { keyframes } from '@mui/material/styles';
 import Layout from '../components/Layout';
 import DashboardStats from '../components/DashboardStats';
 import DiffViewer from '../components/DiffViewer';
 import CommitsView from '../components/CommitsView';
-import LoadingSpinner from '../components/LoadingSpinner';
 import ProgressBar from '../components/ProgressBar';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/Card';
-import { Button } from '../components/Button';
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.875rem;
-`;
-
-const ErrorMessage = styled.div`
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid var(--danger);
-  border-radius: 8px;
-  padding: 1rem;
-  color: var(--danger);
-  text-align: center;
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 1rem;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  background: none;
-  border: none;
-  color: ${(props) => (props.$active ? 'var(--primary)' : 'var(--text-muted)')};
-  border-bottom: 2px solid
-    ${(props) => (props.$active ? 'var(--primary)' : 'transparent')};
-  margin-bottom: -1px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: var(--primary);
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
   }
-`;
-
-const RefreshButton = styled(Button)`
-  &:disabled {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+  to {
+    transform: rotate(360deg);
   }
 `;
 
@@ -239,67 +182,74 @@ export default function Home() {
           total={loadingSteps.length}
         />
       )}
-      <Container>
-        <SectionHeader>
-          <SectionTitle>Dashboard</SectionTitle>
-          <RefreshButton
+      <Stack spacing={3}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1" fontWeight={700}>
+            Dashboard
+          </Typography>
+          <Button
+            variant="outlined"
+            startIcon={
+              <RefreshIcon
+                sx={{
+                  animation: refreshing ? `${spin} 1s linear infinite` : 'none',
+                }}
+              />
+            }
             onClick={handleRefresh}
             disabled={refreshing}
-            size="medium"
           >
-            {refreshing ? '⟳' : '↻'} Refresh
-          </RefreshButton>
-        </SectionHeader>
+            Refresh
+          </Button>
+        </Box>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+        {error && (
+          <Alert severity="error" variant="filled">
+            {error}
+          </Alert>
+        )}
 
         {loading && !refreshing ? (
-          <LoadingSpinner message="Loading dashboard data..." />
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+            <CircularProgress size={60} />
+          </Box>
         ) : (
           <>
             <DashboardStats {...stats} />
 
-            <Tabs>
-              <Tab
-                $active={activeTab === 'overview'}
-                onClick={() => setActiveTab('overview')}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, newValue) => setActiveTab(newValue)}
+                sx={{ minHeight: 48 }}
               >
-                Workflow Changes
-              </Tab>
-              <Tab
-                $active={activeTab === 'commits'}
-                onClick={() => setActiveTab('commits')}
-              >
-                Recent Commits
-              </Tab>
-            </Tabs>
+                <Tab label="Workflow Changes" value="overview" />
+                <Tab label="Recent Commits" value="commits" />
+              </Tabs>
+            </Box>
 
             {activeTab === 'overview' ? (
-              <Section>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Git Changes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
-                  </CardContent>
-                </Card>
-              </Section>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Git Changes
+                  </Typography>
+                  <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
+                </CardContent>
+              </Card>
             ) : (
-              <Section>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Commits</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CommitsView commits={commits} />
-                  </CardContent>
-                </Card>
-              </Section>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Recent Commits
+                  </Typography>
+                  <CommitsView commits={commits} />
+                </CardContent>
+              </Card>
             )}
           </>
         )}
-      </Container>
+      </Stack>
     </Layout>
   );
 }

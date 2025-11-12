@@ -1,63 +1,11 @@
 'use client';
 
-import styled from 'styled-components';
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const StatCard = styled.div`
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: ${(props) => props.color || 'var(--primary)'};
-    box-shadow: 0 2px 8px var(--shadow);
-  }
-`;
-
-const StatIcon = styled.div<{ color: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: ${(props) => props.color}15;
-  border: 1px solid ${(props) => props.color}40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-`;
-
-const StatContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-  margin-bottom: 0.25rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-`;
+import { Box, Card, CardContent, Typography, Avatar } from '@mui/material';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 
 interface DashboardStatsProps {
   totalWorkflows: number;
@@ -74,47 +22,95 @@ export default function DashboardStats({
   onlyInN8n,
   onlyInGitHub,
 }: DashboardStatsProps) {
+  const stats = [
+    {
+      value: totalWorkflows,
+      label: 'Total Workflows',
+      icon: <InventoryIcon />,
+      bgColor: 'primary.main',
+    },
+    {
+      value: synced,
+      label: 'Synced',
+      icon: <CheckCircleIcon />,
+      bgColor: 'success.main',
+    },
+    {
+      value: modified,
+      label: 'Modified',
+      icon: <EditIcon />,
+      bgColor: 'warning.main',
+    },
+    {
+      value: onlyInN8n,
+      label: 'Only in n8n',
+      icon: <CloudUploadIcon />,
+      bgColor: 'error.main',
+    },
+    {
+      value: onlyInGitHub,
+      label: 'Only in GitHub',
+      icon: <CloudDownloadIcon />,
+      bgColor: 'info.main',
+    },
+  ];
+
   return (
-    <StatsGrid>
-      <StatCard color="var(--primary)">
-        <StatIcon color="var(--primary)">📊</StatIcon>
-        <StatContent>
-          <StatValue>{totalWorkflows}</StatValue>
-          <StatLabel>Total</StatLabel>
-        </StatContent>
-      </StatCard>
-
-      <StatCard color="var(--secondary)">
-        <StatIcon color="var(--secondary)">✓</StatIcon>
-        <StatContent>
-          <StatValue>{synced}</StatValue>
-          <StatLabel>Synced</StatLabel>
-        </StatContent>
-      </StatCard>
-
-      <StatCard color="var(--warning)">
-        <StatIcon color="var(--warning)">⚠</StatIcon>
-        <StatContent>
-          <StatValue>{modified}</StatValue>
-          <StatLabel>Modified</StatLabel>
-        </StatContent>
-      </StatCard>
-
-      <StatCard color="var(--danger)">
-        <StatIcon color="var(--danger)">↑</StatIcon>
-        <StatContent>
-          <StatValue>{onlyInN8n}</StatValue>
-          <StatLabel>Only n8n</StatLabel>
-        </StatContent>
-      </StatCard>
-
-      <StatCard color="var(--primary-light)">
-        <StatIcon color="var(--primary-light)">↓</StatIcon>
-        <StatContent>
-          <StatValue>{onlyInGitHub}</StatValue>
-          <StatLabel>Only GitHub</StatLabel>
-        </StatContent>
-      </StatCard>
-    </StatsGrid>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, 1fr)',
+          md: 'repeat(5, 1fr)',
+        },
+        gap: 2,
+        mb: 3,
+      }}
+    >
+      {stats.map((stat, index) => (
+        <Card
+          key={index}
+          sx={{
+            height: '100%',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 4,
+            },
+          }}
+        >
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Avatar
+                sx={{
+                  bgcolor: stat.bgColor,
+                  width: 48,
+                  height: 48,
+                  opacity: 0.9,
+                }}
+              >
+                {stat.icon}
+              </Avatar>
+            </Box>
+            <Typography variant="h4" component="div" sx={{ mb: 0.5, fontWeight: 700 }}>
+              {stat.value}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                textTransform: 'uppercase',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                letterSpacing: 1,
+              }}
+            >
+              {stat.label}
+            </Typography>
+          </CardContent>
+        </Card>
+      ))}
+    </Box>
   );
 }

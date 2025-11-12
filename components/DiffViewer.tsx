@@ -1,116 +1,26 @@
 'use client';
 
-import styled from 'styled-components';
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Chip,
+  Collapse,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useState } from 'react';
 import StatusBadge from './StatusBadge';
-import { Button } from './Button';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
 import CommitModal from './CommitModal';
-
-const SyncButton = styled(Button)`
-  font-size: 0.75rem;
-  padding: 0.375rem 0.75rem;
-`;
-
-const WorkflowList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const WorkflowItem = styled.div`
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.875rem 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--primary);
-    background: var(--bg-secondary);
-    box-shadow: 0 1px 4px var(--shadow);
-  }
-`;
-
-const WorkflowHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const WorkflowName = styled.h3`
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const WorkflowMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-`;
-
-const DiffContent = styled.pre`
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow-x: auto;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  max-height: 500px;
-  overflow-y: auto;
-
-  .diff-line {
-    display: block;
-    padding: 0.125rem 0.5rem;
-    margin: 0 -0.5rem;
-  }
-
-  .diff-added {
-    background: rgba(16, 185, 129, 0.15);
-    color: #6ee7b7;
-  }
-
-  .diff-removed {
-    background: rgba(239, 68, 68, 0.15);
-    color: #fca5a5;
-  }
-
-  .diff-info {
-    color: var(--primary-light);
-    font-weight: 600;
-  }
-
-  .diff-header {
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-muted);
-`;
-
-const FilterBar = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-`;
 
 interface Comparison {
   workflowId: string | null;
@@ -158,7 +68,6 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
 
   const handlePushClick = (comparison: Comparison, e: React.MouseEvent) => {
     e.stopPropagation();
-    // Open commit message modal instead of confirm modal
     setCommitModal({ isOpen: true, comparison });
   };
 
@@ -218,6 +127,7 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
       });
     } finally {
       setSyncing(null);
+      setConfirmModal({ isOpen: false, comparison: null, action: null });
     }
   };
 
@@ -286,7 +196,6 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
       let success = true;
       let errorMessage = '';
 
-      // Delete from n8n if needed
       if ((deleteFrom === 'n8n' || deleteFrom === 'both') && comparison.workflowId) {
         const response = await fetch('/api/delete-workflow', {
           method: 'POST',
@@ -305,7 +214,6 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
         }
       }
 
-      // Delete from GitHub if needed
       if (success && (deleteFrom === 'github' || deleteFrom === 'both') && comparison.inGitHub) {
         const response = await fetch('/api/delete-github-file', {
           method: 'POST',
@@ -365,20 +273,35 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
 
   const formatDiff = (diff: string) => {
     return diff.split('\n').map((line, index) => {
-      let className = 'diff-line';
+      let color = 'text.primary';
+      let bgcolor = 'transparent';
+
       if (line.startsWith('+') && !line.startsWith('+++')) {
-        className += ' diff-added';
+        color = '#6ee7b7';
+        bgcolor = 'rgba(16, 185, 129, 0.15)';
       } else if (line.startsWith('-') && !line.startsWith('---')) {
-        className += ' diff-removed';
+        color = '#fca5a5';
+        bgcolor = 'rgba(239, 68, 68, 0.15)';
       } else if (line.startsWith('@@')) {
-        className += ' diff-info';
+        color = 'primary.light';
       } else if (line.startsWith('---') || line.startsWith('+++')) {
-        className += ' diff-header';
+        color = 'text.secondary';
       }
+
       return (
-        <span key={index} className={className}>
-          {line || '\n'}
-        </span>
+        <Box
+          key={index}
+          component="span"
+          sx={{
+            display: 'block',
+            px: 1,
+            py: 0.25,
+            color,
+            bgcolor,
+          }}
+        >
+          {line || '\u00A0'}
+        </Box>
       );
     });
   };
@@ -430,152 +353,170 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteModal({ isOpen: false, comparison: null, deleteFrom: null })}
       />
-      <FilterBar>
+
+      <ButtonGroup variant="outlined" sx={{ mb: 3 }} size="small">
         <Button
-          variant={filter === 'all' ? 'primary' : 'secondary'}
-          size="small"
+          variant={filter === 'all' ? 'contained' : 'outlined'}
           onClick={() => setFilter('all')}
         >
           All ({comparisons.length})
         </Button>
         <Button
-          variant={filter === 'synced' ? 'primary' : 'secondary'}
-          size="small"
+          variant={filter === 'synced' ? 'contained' : 'outlined'}
           onClick={() => setFilter('synced')}
         >
           Synced ({comparisons.filter((c) => c.status === 'synced').length})
         </Button>
         <Button
-          variant={filter === 'modified' ? 'primary' : 'secondary'}
-          size="small"
+          variant={filter === 'modified' ? 'contained' : 'outlined'}
           onClick={() => setFilter('modified')}
         >
           Modified ({comparisons.filter((c) => c.status === 'modified').length})
         </Button>
         <Button
-          variant={filter === 'only_in_n8n' ? 'primary' : 'secondary'}
-          size="small"
+          variant={filter === 'only_in_n8n' ? 'contained' : 'outlined'}
           onClick={() => setFilter('only_in_n8n')}
         >
           Only in n8n ({comparisons.filter((c) => c.status === 'only_in_n8n').length})
         </Button>
         <Button
-          variant={filter === 'only_in_github' ? 'primary' : 'secondary'}
-          size="small"
+          variant={filter === 'only_in_github' ? 'contained' : 'outlined'}
           onClick={() => setFilter('only_in_github')}
         >
           Only in GitHub ({comparisons.filter((c) => c.status === 'only_in_github').length})
         </Button>
-      </FilterBar>
+      </ButtonGroup>
 
-      <WorkflowList>
+      <Stack spacing={2}>
         {filteredComparisons.length === 0 ? (
-          <EmptyState>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
-            <div>No workflows found with the selected filter</div>
-          </EmptyState>
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h3" sx={{ mb: 2 }}>🎉</Typography>
+            <Typography color="text.secondary">
+              No workflows found with the selected filter
+            </Typography>
+          </Box>
         ) : (
           filteredComparisons.map((comparison) => (
-            <WorkflowItem
+            <Paper
               key={comparison.filename}
+              sx={{
+                p: 2,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  boxShadow: 2,
+                },
+              }}
               onClick={() =>
                 setExpandedId(
                   expandedId === comparison.filename ? null : comparison.filename
                 )
               }
             >
-              <WorkflowHeader>
-                <WorkflowName>{comparison.workflowName}</WorkflowName>
-                <WorkflowMeta>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }} noWrap>
+                    {comparison.workflowName}
+                  </Typography>
                   <StatusBadge status={comparison.status} />
+                </Box>
 
-                  {/* Pull from GitHub button - for modified or only_in_github */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                   {(comparison.status === 'modified' || comparison.status === 'only_in_github') && (
-                    <SyncButton
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<CloudDownloadIcon />}
                       onClick={(e) => handlePullClick(comparison, e)}
                       disabled={syncing === comparison.filename}
-                      variant="secondary"
-                      size="small"
                     >
-                      {syncing === comparison.filename ? 'Syncing...' : '↓ Pull from GitHub'}
-                    </SyncButton>
+                      {syncing === comparison.filename ? 'Syncing...' : 'Pull'}
+                    </Button>
                   )}
 
-                  {/* Push to GitHub button - for modified or only_in_n8n */}
                   {(comparison.status === 'modified' || comparison.status === 'only_in_n8n') && comparison.workflowId && (
-                    <SyncButton
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<CloudUploadIcon />}
                       onClick={(e) => handlePushClick(comparison, e)}
                       disabled={syncing === comparison.filename}
-                      variant="primary"
-                      size="small"
                     >
-                      {syncing === comparison.filename ? 'Syncing...' : '↑ Push to GitHub'}
-                    </SyncButton>
+                      {syncing === comparison.filename ? 'Syncing...' : 'Push'}
+                    </Button>
                   )}
 
-                  {/* Delete button for only_in_n8n */}
                   {comparison.status === 'only_in_n8n' && comparison.workflowId && (
-                    <SyncButton
+                    <IconButton
+                      size="small"
+                      color="error"
                       onClick={(e) => handleDeleteClick(comparison, 'n8n', e)}
                       disabled={syncing === comparison.filename}
-                      variant="secondary"
-                      size="small"
-                      style={{ color: 'var(--danger)' }}
                     >
-                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete from n8n'}
-                    </SyncButton>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
                   )}
 
-                  {/* Delete button for only_in_github */}
                   {comparison.status === 'only_in_github' && (
-                    <SyncButton
+                    <IconButton
+                      size="small"
+                      color="error"
                       onClick={(e) => handleDeleteClick(comparison, 'github', e)}
                       disabled={syncing === comparison.filename}
-                      variant="secondary"
-                      size="small"
-                      style={{ color: 'var(--danger)' }}
                     >
-                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete from GitHub'}
-                    </SyncButton>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
                   )}
 
-                  {/* Delete button for synced workflows */}
                   {(comparison.status === 'synced' || comparison.status === 'modified') && comparison.workflowId && (
-                    <SyncButton
+                    <IconButton
+                      size="small"
+                      color="error"
                       onClick={(e) => handleDeleteClick(comparison, 'both', e)}
                       disabled={syncing === comparison.filename}
-                      variant="secondary"
-                      size="small"
-                      style={{ color: 'var(--danger)' }}
                     >
-                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete'}
-                    </SyncButton>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
                   )}
-                </WorkflowMeta>
-              </WorkflowHeader>
 
-              {expandedId === comparison.filename && comparison.diff && (
-                <DiffContent>{formatDiff(comparison.diff)}</DiffContent>
-              )}
+                  <IconButton size="small">
+                    {expandedId === comparison.filename ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Box>
+              </Box>
 
-              {expandedId === comparison.filename &&
-                !comparison.diff &&
-                comparison.status === 'synced' && (
-                  <div
-                    style={{
-                      marginTop: '1rem',
-                      padding: '1rem',
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
+              <Collapse in={expandedId === comparison.filename}>
+                {comparison.diff ? (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: 'background.default',
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      maxHeight: 500,
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
+                      lineHeight: 1.6,
                     }}
                   >
-                    ✓ This workflow is in sync
-                  </div>
-                )}
-            </WorkflowItem>
+                    {formatDiff(comparison.diff)}
+                  </Box>
+                ) : comparison.status === 'synced' ? (
+                  <Box sx={{ mt: 2, p: 2, textAlign: 'center' }}>
+                    <Typography color="text.secondary">
+                      ✓ This workflow is in sync
+                    </Typography>
+                  </Box>
+                ) : null}
+              </Collapse>
+            </Paper>
           ))
         )}
-      </WorkflowList>
+      </Stack>
     </>
   );
 }

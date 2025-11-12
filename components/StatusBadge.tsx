@@ -1,67 +1,67 @@
 'use client';
 
-import styled from 'styled-components';
+import { Chip } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import ErrorIcon from '@mui/icons-material/Error';
 
 interface BadgeProps {
   status: 'synced' | 'modified' | 'only_in_n8n' | 'only_in_github' | 'error';
 }
 
-const getBadgeColor = (status: BadgeProps['status']) => {
+const getStatusConfig = (status: BadgeProps['status']) => {
   switch (status) {
     case 'synced':
-      return 'var(--secondary)';
+      return {
+        label: 'Synced',
+        color: 'success' as const,
+        icon: <CheckCircleIcon />,
+      };
     case 'modified':
-      return 'var(--warning)';
+      return {
+        label: 'Modified',
+        color: 'warning' as const,
+        icon: <EditIcon />,
+      };
     case 'only_in_n8n':
-      return 'var(--primary)';
+      return {
+        label: 'Only in n8n',
+        color: 'primary' as const,
+        icon: <CloudUploadIcon />,
+      };
     case 'only_in_github':
-      return 'var(--primary-light)';
+      return {
+        label: 'Only in GitHub',
+        color: 'info' as const,
+        icon: <CloudDownloadIcon />,
+      };
     case 'error':
-      return 'var(--danger)';
+      return {
+        label: 'Error',
+        color: 'error' as const,
+        icon: <ErrorIcon />,
+      };
     default:
-      return 'var(--text-muted)';
+      return {
+        label: 'Unknown',
+        color: 'default' as const,
+        icon: undefined,
+      };
   }
 };
-
-const getBadgeText = (status: BadgeProps['status']) => {
-  switch (status) {
-    case 'synced':
-      return 'Synced';
-    case 'modified':
-      return 'Modified';
-    case 'only_in_n8n':
-      return 'Only in n8n';
-    case 'only_in_github':
-      return 'Only in GitHub';
-    case 'error':
-      return 'Error';
-    default:
-      return 'Unknown';
-  }
-};
-
-const Badge = styled.span<BadgeProps>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 6px;
-  background: ${(props) => getBadgeColor(props.status)}22;
-  color: ${(props) => getBadgeColor(props.status)};
-  border: 1px solid ${(props) => getBadgeColor(props.status)}44;
-
-  &::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${(props) => getBadgeColor(props.status)};
-  }
-`;
 
 export default function StatusBadge({ status }: BadgeProps) {
-  return <Badge status={status}>{getBadgeText(status)}</Badge>;
+  const config = getStatusConfig(status);
+
+  return (
+    <Chip
+      label={config.label}
+      color={config.color}
+      icon={config.icon}
+      size="small"
+      sx={{ fontWeight: 600 }}
+    />
+  );
 }
