@@ -4,7 +4,7 @@ import { Octokit } from '@octokit/rest';
 
 export async function POST(request: Request) {
   try {
-    const { workflowId, filename } = await request.json();
+    const { workflowId, filename, commitMessage } = await request.json();
 
     console.log(`Pushing workflow ${workflowId} to GitHub as ${filename}`);
 
@@ -63,15 +63,15 @@ export async function POST(request: Request) {
     }
 
     // Create or update the file in GitHub
-    const commitMessage = fileSha
+    const finalCommitMessage = commitMessage || (fileSha
       ? `Update workflow: ${workflow.name}`
-      : `Add workflow: ${workflow.name}`;
+      : `Add workflow: ${workflow.name}`);
 
     const response = await octokit.repos.createOrUpdateFileContents({
       owner: process.env.GITHUB_OWNER!,
       repo: process.env.GITHUB_REPO!,
       path: filename,
-      message: commitMessage,
+      message: finalCommitMessage,
       content: Buffer.from(fileContent).toString('base64'),
       sha: fileSha, // Only needed for updates
     });

@@ -6,6 +6,7 @@ import StatusBadge from './StatusBadge';
 import { Button } from './Button';
 import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
+import CommitModal from './CommitModal';
 
 const SyncButton = styled(Button)`
   font-size: 0.75rem;
@@ -140,6 +141,10 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     comparison: Comparison | null;
     action: 'pull' | 'push' | null;
   }>({ isOpen: false, comparison: null, action: null });
+  const [commitModal, setCommitModal] = useState<{
+    isOpen: boolean;
+    comparison: Comparison | null;
+  }>({ isOpen: false, comparison: null });
 
   const handlePullClick = (comparison: Comparison, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,7 +153,8 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
 
   const handlePushClick = (comparison: Comparison, e: React.MouseEvent) => {
     e.stopPropagation();
-    setConfirmModal({ isOpen: true, comparison, action: 'push' });
+    // Open commit message modal instead of confirm modal
+    setCommitModal({ isOpen: true, comparison });
   };
 
   const handleConfirmAction = async () => {
@@ -157,9 +163,14 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
 
     if (action === 'pull') {
       await handlePull(comparison);
-    } else if (action === 'push') {
-      await handlePush(comparison);
     }
+  };
+
+  const handleCommitConfirm = async (commitMessage: string) => {
+    const { comparison } = commitModal;
+    if (!comparison) return;
+
+    await handlePush(comparison, commitMessage);
   };
 
   const handlePull = async (comparison: Comparison) => {
@@ -205,7 +216,7 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     }
   };
 
-  const handlePush = async (comparison: Comparison) => {
+  const handlePush = async (comparison: Comparison, commitMessage: string) => {
     if (!comparison.workflowId) return;
 
     setSyncing(comparison.filename);
@@ -219,6 +230,7 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
         body: JSON.stringify({
           workflowId: comparison.workflowId,
           filename: comparison.filename,
+          commitMessage,
         }),
       });
 
@@ -287,23 +299,24 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
       )}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        title={
-          confirmModal.action === 'pull'
-            ? 'Pull Workflow from GitHub'
-            : 'Push Workflow to GitHub'
-        }
-        message={
-          confirmModal.action === 'pull'
-            ? `Are you sure you want to pull "${confirmModal.comparison?.workflowName}" from GitHub to n8n? This will overwrite the current version in n8n.`
-            : `Are you sure you want to push "${confirmModal.comparison?.workflowName}" from n8n to GitHub? This will ${confirmModal.comparison?.status === 'only_in_n8n' ? 'create a new file' : 'update the existing file'} in GitHub.`
-        }
-        confirmText={
-          confirmModal.action === 'pull' ? '↓ Pull from GitHub' : '↑ Push to GitHub'
-        }
+        title="Pull Workflow from GitHub"
+        message={`Are you sure you want to pull "${confirmModal.comparison?.workflowName}" from GitHub to n8n? This will overwrite the current version in n8n.`}
+        confirmText="↓ Pull from GitHub"
         cancelText="Cancel"
         variant="warning"
         onConfirm={handleConfirmAction}
         onCancel={() => setConfirmModal({ isOpen: false, comparison: null, action: null })}
+      />
+      <CommitModal
+        isOpen={commitModal.isOpen}
+        workflowName={commitModal.comparison?.workflowName || ''}
+        defaultMessage={
+          commitModal.comparison?.status === 'only_in_n8n'
+            ? `Add workflow: ${commitModal.comparison?.workflowName || 'workflow'}`
+            : `Update workflow: ${commitModal.comparison?.workflowName || 'workflow'}`
+        }
+        onConfirm={handleCommitConfirm}
+        onCancel={() => setCommitModal({ isOpen: false, comparison: null })}
       />
       <FilterBar>
         <Button
