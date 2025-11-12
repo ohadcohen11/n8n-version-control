@@ -121,11 +121,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingSteps, setLoadingSteps] = useState([
-    { label: 'Fetching n8n workflows', status: 'pending' as const },
-    { label: 'Fetching GitHub files', status: 'pending' as const },
-    { label: 'Comparing workflows', status: 'pending' as const },
-    { label: 'Fetching commits', status: 'pending' as const },
+  const [loadingSteps, setLoadingSteps] = useState<
+    Array<{ label: string; status: 'pending' | 'loading' | 'complete' }>
+  >([
+    { label: 'Fetching n8n workflows', status: 'pending' },
+    { label: 'Fetching GitHub files', status: 'pending' },
+    { label: 'Comparing workflows', status: 'pending' },
+    { label: 'Fetching commits', status: 'pending' },
   ]);
   const [currentStep, setCurrentStep] = useState(0);
 

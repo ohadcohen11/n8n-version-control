@@ -145,6 +145,11 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     isOpen: boolean;
     comparison: Comparison | null;
   }>({ isOpen: false, comparison: null });
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    comparison: Comparison | null;
+    deleteFrom: 'n8n' | 'github' | 'both' | null;
+  }>({ isOpen: false, comparison: null, deleteFrom: null });
 
   const handlePullClick = (comparison: Comparison, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -262,6 +267,97 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
     }
   };
 
+  const handleDeleteClick = (
+    comparison: Comparison,
+    deleteFrom: 'n8n' | 'github' | 'both',
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    setDeleteModal({ isOpen: true, comparison, deleteFrom });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { comparison, deleteFrom } = deleteModal;
+    if (!comparison || !deleteFrom) return;
+
+    setSyncing(comparison.filename);
+
+    try {
+      let success = true;
+      let errorMessage = '';
+
+      // Delete from n8n if needed
+      if ((deleteFrom === 'n8n' || deleteFrom === 'both') && comparison.workflowId) {
+        const response = await fetch('/api/delete-workflow', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            workflowId: comparison.workflowId,
+          }),
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+          success = false;
+          errorMessage = data.details || data.error;
+        }
+      }
+
+      // Delete from GitHub if needed
+      if (success && (deleteFrom === 'github' || deleteFrom === 'both') && comparison.inGitHub) {
+        const response = await fetch('/api/delete-github-file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: comparison.filename,
+            commitMessage: `Remove workflow: ${comparison.workflowName}`,
+          }),
+        });
+
+        const data = await response.json();
+        if (!data.success) {
+          success = false;
+          errorMessage = data.details || data.error;
+        }
+      }
+
+      if (success) {
+        const location =
+          deleteFrom === 'both'
+            ? 'n8n and GitHub'
+            : deleteFrom === 'n8n'
+            ? 'n8n'
+            : 'GitHub';
+        setToast({
+          type: 'success',
+          title: 'Workflow Deleted',
+          message: `Successfully deleted "${comparison.workflowName}" from ${location}`,
+        });
+        if (onSync) onSync();
+      } else {
+        setToast({
+          type: 'error',
+          title: 'Delete Failed',
+          message: errorMessage,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      setToast({
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'An unexpected error occurred. Check console for details.',
+      });
+    } finally {
+      setSyncing(null);
+      setDeleteModal({ isOpen: false, comparison: null, deleteFrom: null });
+    }
+  };
+
   const filteredComparisons = comparisons.filter((comp) => {
     if (filter === 'all') return true;
     return comp.status === filter;
@@ -317,6 +413,22 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
         }
         onConfirm={handleCommitConfirm}
         onCancel={() => setCommitModal({ isOpen: false, comparison: null })}
+      />
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Workflow"
+        message={`Are you sure you want to delete "${deleteModal.comparison?.workflowName}" from ${
+          deleteModal.deleteFrom === 'both'
+            ? 'both n8n and GitHub'
+            : deleteModal.deleteFrom === 'n8n'
+            ? 'n8n'
+            : 'GitHub'
+        }? This action cannot be undone.`}
+        confirmText="🗑️ Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteModal({ isOpen: false, comparison: null, deleteFrom: null })}
       />
       <FilterBar>
         <Button
@@ -398,6 +510,45 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
                       size="small"
                     >
                       {syncing === comparison.filename ? 'Syncing...' : '↑ Push to GitHub'}
+                    </SyncButton>
+                  )}
+
+                  {/* Delete button for only_in_n8n */}
+                  {comparison.status === 'only_in_n8n' && comparison.workflowId && (
+                    <SyncButton
+                      onClick={(e) => handleDeleteClick(comparison, 'n8n', e)}
+                      disabled={syncing === comparison.filename}
+                      variant="secondary"
+                      size="small"
+                      style={{ color: 'var(--danger)' }}
+                    >
+                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete from n8n'}
+                    </SyncButton>
+                  )}
+
+                  {/* Delete button for only_in_github */}
+                  {comparison.status === 'only_in_github' && (
+                    <SyncButton
+                      onClick={(e) => handleDeleteClick(comparison, 'github', e)}
+                      disabled={syncing === comparison.filename}
+                      variant="secondary"
+                      size="small"
+                      style={{ color: 'var(--danger)' }}
+                    >
+                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete from GitHub'}
+                    </SyncButton>
+                  )}
+
+                  {/* Delete button for synced workflows */}
+                  {(comparison.status === 'synced' || comparison.status === 'modified') && comparison.workflowId && (
+                    <SyncButton
+                      onClick={(e) => handleDeleteClick(comparison, 'both', e)}
+                      disabled={syncing === comparison.filename}
+                      variant="secondary"
+                      size="small"
+                      style={{ color: 'var(--danger)' }}
+                    >
+                      {syncing === comparison.filename ? 'Deleting...' : '🗑️ Delete'}
                     </SyncButton>
                   )}
                 </WorkflowMeta>
