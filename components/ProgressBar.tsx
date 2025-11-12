@@ -63,16 +63,17 @@ export default function ProgressBar({ steps, currentStep, total }: ProgressBarPr
   return (
     <Box
       sx={{
-        position: 'fixed',
-        top: 64,
+        position: 'sticky',
+        top: 0,
         left: 0,
         right: 0,
-        zIndex: 2000,
+        zIndex: 1100,
         bgcolor: 'background.paper',
         borderBottom: 1,
         borderColor: 'divider',
-        p: 3,
+        p: 2,
         boxShadow: 2,
+        mb: 2,
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
