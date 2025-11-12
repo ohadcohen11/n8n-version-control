@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       // Update existing workflow in n8n
       console.log(`Updating existing workflow ${workflowId}`);
 
-      // For updates, we can send most fields except id, timestamps, tags, etc.
+      // For updates, use PUT but don't include id (it's in the URL)
       const updateData = {
         name: workflowData.name,
         nodes: workflowData.nodes,
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         staticData: workflowData.staticData,
       };
 
-      const response = await axios.patch(
+      const response = await axios.put(
         `${process.env.N8N_API_URL}/workflows/${workflowId}`,
         updateData,
         {
