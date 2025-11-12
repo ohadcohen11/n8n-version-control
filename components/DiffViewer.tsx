@@ -12,12 +12,18 @@ const WorkflowList = styled.div`
   gap: 1rem;
 `;
 
-const WorkflowItem = styled(Card)`
+const WorkflowItem = styled.div`
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.875rem 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
     border-color: var(--primary);
+    background: var(--bg-secondary);
+    box-shadow: 0 1px 4px var(--shadow);
   }
 `;
 
@@ -29,18 +35,22 @@ const WorkflowHeader = styled.div`
 `;
 
 const WorkflowName = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--text-primary);
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const WorkflowMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  font-size: 0.875rem;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
+  flex-shrink: 0;
 `;
 
 const DiffContent = styled.pre`

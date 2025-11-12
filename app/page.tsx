@@ -13,26 +13,29 @@ import { Button } from '../components/Button';
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 `;
 
 const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 `;
 
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
 `;
 
 const ErrorMessage = styled.div`
@@ -46,21 +49,21 @@ const ErrorMessage = styled.div`
 
 const Tabs = styled.div`
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 1.5rem;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   background: none;
   border: none;
   color: ${(props) => (props.$active ? 'var(--primary)' : 'var(--text-muted)')};
   border-bottom: 2px solid
     ${(props) => (props.$active ? 'var(--primary)' : 'transparent')};
-  margin-bottom: -2px;
+  margin-bottom: -1px;
   cursor: pointer;
   transition: all 0.2s ease;
 

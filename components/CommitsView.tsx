@@ -9,22 +9,32 @@ const CommitsList = styled.div`
   gap: 1rem;
 `;
 
-const CommitItem = styled(Card)`
+const CommitItem = styled.div`
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.875rem 1rem;
   display: flex;
-  gap: 1rem;
+  gap: 0.875rem;
   align-items: flex-start;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--border);
+    background: var(--bg-tertiary);
+  }
 `;
 
 const CommitAvatar = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   flex-shrink: 0;
 `;
 
@@ -34,8 +44,8 @@ const CommitContent = styled.div`
 `;
 
 const CommitMessage = styled.div`
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 0.375rem;
   overflow: hidden;
@@ -45,8 +55,8 @@ const CommitMessage = styled.div`
 
 const CommitMeta = styled.div`
   display: flex;
-  gap: 1rem;
-  font-size: 0.875rem;
+  gap: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
   flex-wrap: wrap;
 `;

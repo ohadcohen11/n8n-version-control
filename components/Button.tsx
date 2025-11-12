@@ -11,26 +11,26 @@ export const Button = styled.button<ButtonProps>`
   padding: ${(props) => {
     switch (props.size) {
       case 'small':
-        return '0.5rem 1rem';
+        return '0.4375rem 0.875rem';
       case 'large':
-        return '0.875rem 1.75rem';
+        return '0.75rem 1.5rem';
       default:
-        return '0.625rem 1.25rem';
+        return '0.5625rem 1.125rem';
     }
   }};
   font-size: ${(props) => {
     switch (props.size) {
       case 'small':
-        return '0.875rem';
+        return '0.8125rem';
       case 'large':
-        return '1.125rem';
-      default:
         return '1rem';
+      default:
+        return '0.875rem';
     }
   }};
-  font-weight: 600;
+  font-weight: 500;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background: ${(props) => {
     switch (props.variant) {
       case 'secondary':
@@ -45,12 +45,12 @@ export const Button = styled.button<ButtonProps>`
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   cursor: pointer;
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--shadow);
+    box-shadow: 0 2px 8px var(--shadow);
     background: ${(props) => {
       switch (props.variant) {
         case 'secondary':

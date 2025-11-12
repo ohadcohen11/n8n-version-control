@@ -12,8 +12,7 @@ const LayoutWrapper = styled.div`
 const Header = styled.header`
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  padding: 1.5rem 2rem;
-  box-shadow: 0 2px 8px var(--shadow);
+  padding: 1rem 1.5rem;
 `;
 
 const HeaderContent = styled.div`
@@ -25,20 +24,20 @@ const HeaderContent = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 
   &::before {
     content: '';
     display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 2px;
+    border-radius: 50%;
     animation: pulse 2s ease-in-out infinite;
   }
 
@@ -49,13 +48,13 @@ const Title = styled.h1`
     }
     50% {
       opacity: 0.7;
-      transform: scale(1.1);
+      transform: scale(1.2);
     }
   }
 `;
 
 const Subtitle = styled.span`
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
   font-weight: 400;
 `;
@@ -65,7 +64,7 @@ const Main = styled.main`
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem;
 `;
 
 interface LayoutProps {
