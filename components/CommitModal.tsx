@@ -58,9 +58,11 @@ export default function CommitModal({
       onClose={onCancel}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+          },
         },
       }}
     >

@@ -31,7 +31,7 @@ export default function Toast({ type, title, message, onClose, duration = 4000 }
       open={open}
       autoHideDuration={duration}
       onClose={handleClose}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
     >
       <Alert onClose={handleClose} severity={type} sx={{ minWidth: 300 }} variant="filled" elevation={6}>
         <AlertTitle sx={{ fontWeight: 600 }}>{title}</AlertTitle>

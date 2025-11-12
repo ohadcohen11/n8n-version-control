@@ -422,63 +422,65 @@ export default function DiffViewer({ comparisons, onSync }: DiffViewerProps) {
                   <StatusBadge status={comparison.status} />
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                  {(comparison.status === 'modified' || comparison.status === 'only_in_github') && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<CloudDownloadIcon />}
-                      onClick={(e) => handlePullClick(comparison, e)}
-                      disabled={syncing === comparison.filename}
-                    >
-                      {syncing === comparison.filename ? 'Syncing...' : 'Pull'}
-                    </Button>
-                  )}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} onClick={(e) => e.stopPropagation()}>
+                    {(comparison.status === 'modified' || comparison.status === 'only_in_github') && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<CloudDownloadIcon />}
+                        onClick={(e) => handlePullClick(comparison, e)}
+                        disabled={syncing === comparison.filename}
+                      >
+                        {syncing === comparison.filename ? 'Syncing...' : 'Pull'}
+                      </Button>
+                    )}
 
-                  {(comparison.status === 'modified' || comparison.status === 'only_in_n8n') && comparison.workflowId && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<CloudUploadIcon />}
-                      onClick={(e) => handlePushClick(comparison, e)}
-                      disabled={syncing === comparison.filename}
-                    >
-                      {syncing === comparison.filename ? 'Syncing...' : 'Push'}
-                    </Button>
-                  )}
+                    {(comparison.status === 'modified' || comparison.status === 'only_in_n8n') && comparison.workflowId && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<CloudUploadIcon />}
+                        onClick={(e) => handlePushClick(comparison, e)}
+                        disabled={syncing === comparison.filename}
+                      >
+                        {syncing === comparison.filename ? 'Syncing...' : 'Push'}
+                      </Button>
+                    )}
 
-                  {comparison.status === 'only_in_n8n' && comparison.workflowId && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={(e) => handleDeleteClick(comparison, 'n8n', e)}
-                      disabled={syncing === comparison.filename}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  )}
+                    {comparison.status === 'only_in_n8n' && comparison.workflowId && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={(e) => handleDeleteClick(comparison, 'n8n', e)}
+                        disabled={syncing === comparison.filename}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
 
-                  {comparison.status === 'only_in_github' && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={(e) => handleDeleteClick(comparison, 'github', e)}
-                      disabled={syncing === comparison.filename}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  )}
+                    {comparison.status === 'only_in_github' && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={(e) => handleDeleteClick(comparison, 'github', e)}
+                        disabled={syncing === comparison.filename}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
 
-                  {(comparison.status === 'synced' || comparison.status === 'modified') && comparison.workflowId && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={(e) => handleDeleteClick(comparison, 'both', e)}
-                      disabled={syncing === comparison.filename}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  )}
+                    {(comparison.status === 'synced' || comparison.status === 'modified') && comparison.workflowId && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={(e) => handleDeleteClick(comparison, 'both', e)}
+                        disabled={syncing === comparison.filename}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
 
                   <IconButton size="small">
                     {expandedId === comparison.filename ? <ExpandLessIcon /> : <ExpandMoreIcon />}
