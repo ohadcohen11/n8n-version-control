@@ -7,6 +7,7 @@ import DashboardStats from '../components/DashboardStats';
 import DiffViewer from '../components/DiffViewer';
 import CommitsView from '../components/CommitsView';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ProgressBar from '../components/ProgressBar';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 
@@ -120,24 +121,85 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingSteps, setLoadingSteps] = useState([
+    { label: 'Fetching n8n workflows', status: 'pending' as const },
+    { label: 'Fetching GitHub files', status: 'pending' as const },
+    { label: 'Comparing workflows', status: 'pending' as const },
+    { label: 'Fetching commits', status: 'pending' as const },
+  ]);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const updateStep = (index: number, status: 'pending' | 'loading' | 'complete') => {
+    setLoadingSteps((prev) =>
+      prev.map((step, i) => (i === index ? { ...step, status } : step))
+    );
+  };
 
   const fetchData = async () => {
     try {
       setError(null);
+
+      // Reset steps
+      setLoadingSteps([
+        { label: 'Fetching n8n workflows', status: 'pending' },
+        { label: 'Fetching GitHub files', status: 'pending' },
+        { label: 'Comparing workflows', status: 'pending' },
+        { label: 'Fetching commits', status: 'pending' },
+      ]);
+      setCurrentStep(0);
+
+      // Step 1: Fetch n8n workflows
+      updateStep(0, 'loading');
+      setCurrentStep(0.5);
+
+      const comparePromise = fetch('/api/compare');
+
+      // Step 2: Fetch GitHub files (starts in parallel)
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      updateStep(1, 'loading');
+      setCurrentStep(1);
+
+      // Step 3: Wait for comparison to complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      updateStep(0, 'complete');
+      setCurrentStep(1.5);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      updateStep(1, 'complete');
+      updateStep(2, 'loading');
+      setCurrentStep(2);
+
+      // Step 4: Fetch commits
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      updateStep(3, 'loading');
+      setCurrentStep(2.5);
+
+      const commitsPromise = fetch('/api/github/commits');
+
+      // Wait for both to complete
       const [compareRes, commitsRes] = await Promise.all([
-        fetch('/api/compare'),
-        fetch('/api/github/commits'),
+        comparePromise.then((res) => res.json()),
+        commitsPromise.then((res) => res.json()),
       ]);
 
-      if (!compareRes.ok || !commitsRes.ok) {
+      // Step 5: Complete comparison
+      updateStep(2, 'complete');
+      setCurrentStep(3);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      if (!compareRes.comparisons && !commitsRes) {
         throw new Error('Failed to fetch data');
       }
 
-      const compareData = await compareRes.json();
-      const commitsData = await commitsRes.json();
+      setComparisons(compareRes.comparisons || []);
+      setCommits(commitsRes || []);
 
-      setComparisons(compareData.comparisons || []);
-      setCommits(commitsData || []);
+      // Step 6: Complete commits
+      updateStep(3, 'complete');
+      setCurrentStep(4);
+
+      // Small delay to show 100% before hiding
+      await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (err) {
       console.error('Error fetching data:', err);
       setError(
@@ -168,6 +230,13 @@ export default function Home() {
 
   return (
     <Layout>
+      {(loading || refreshing) && (
+        <ProgressBar
+          steps={loadingSteps}
+          currentStep={currentStep}
+          total={loadingSteps.length}
+        />
+      )}
       <Container>
         <SectionHeader>
           <SectionTitle>Dashboard</SectionTitle>
@@ -182,7 +251,7 @@ export default function Home() {
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
 
-        {loading ? (
+        {loading && !refreshing ? (
           <LoadingSpinner message="Loading dashboard data..." />
         ) : (
           <>
