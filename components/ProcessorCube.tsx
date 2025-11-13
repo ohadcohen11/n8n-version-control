@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Box, Typography, Chip, Paper } from '@mui/material';
 
 interface ProcessorCondition {
@@ -75,15 +74,6 @@ const formatOperator = (operator: string | { type?: string; operation?: string }
 export default function ProcessorCube({ processor }: ProcessorCubeProps) {
   const processorColor = PROCESSOR_COLORS[processor.type] || PROCESSOR_COLORS['unknown'];
 
-  // Debug logging
-  console.log('ProcessorCube rendering:', {
-    type: processor.type,
-    conditionsLength: processor.conditions?.length || 0,
-    outputsLength: processor.outputs?.length || 0,
-    firstCondition: processor.conditions?.[0],
-    firstOutput: processor.outputs?.[0]
-  });
-
   return (
     <Paper
       elevation={3}
@@ -131,24 +121,36 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
               const operatorStr = formatOperator(condition.operator);
 
               // Build the condition display
-              const conditionText = condition.field
-                ? `if ${condition.field} ${operatorStr}${condition.value ? ' ' + condition.value : ''}`
+              const conditionExpression = condition.field
+                ? `${condition.field} ${operatorStr}${condition.value ? ' ' + condition.value : ''}`
                 : condition.rawExpression || 'Invalid condition';
 
               return (
                 <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 1 : 0 }}>
                   <Typography
-                    component="pre"
+                    component="div"
                     sx={{
                       fontFamily: 'monospace',
                       fontSize: '0.75rem',
-                      margin: 0,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      color: 'black'
+                      display: 'flex',
+                      gap: 1
                     }}
                   >
-                    {conditionText}
+                    <Box component="span" sx={{ color: '#1976d2', fontWeight: 'bold', flexShrink: 0 }}>
+                      if:
+                    </Box>
+                    <Box
+                      component="pre"
+                      sx={{
+                        margin: 0,
+                        color: 'black',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        flex: 1
+                      }}
+                    >
+                      {conditionExpression}
+                    </Box>
                   </Typography>
                 </Box>
               );
@@ -180,17 +182,29 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
             processor.outputs.map((output, index) => (
               <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.5 : 0 }}>
                 <Typography
-                  component="pre"
+                  component="div"
                   sx={{
                     fontFamily: 'monospace',
                     fontSize: '0.75rem',
-                    margin: 0,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    color: 'black'
+                    display: 'flex',
+                    gap: 1
                   }}
                 >
-                  {output.name} = {output.value}
+                  <Box component="span" sx={{ color: '#2e7d32', fontWeight: 'bold', flexShrink: 0 }}>
+                    {output.name}:
+                  </Box>
+                  <Box
+                    component="pre"
+                    sx={{
+                      margin: 0,
+                      color: 'black',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      flex: 1
+                    }}
+                  >
+                    {output.value}
+                  </Box>
                 </Typography>
               </Box>
             ))
