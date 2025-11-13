@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     let nodeIndex = workflow.nodes.findIndex((node: any) => node.id === nodeId);
 
     // If not found by ID and it's an output update, try finding by name
-    if (nodeIndex === -1 && field === 'output') {
+    if (nodeIndex === -1 && (field === 'output' || field === 'outputAll')) {
       nodeIndex = workflow.nodes.findIndex((node: any) => node.name === nodeId);
     }
 
@@ -89,6 +89,28 @@ export async function POST(request: Request) {
         // Update the value, keeping other properties like id and type
         assignments[assignmentIndex].value = value.value;
       }
+    } else if (field === 'outputAll') {
+      // Update multiple outputs at once
+      if (!workflow.nodes[nodeIndex].parameters) {
+        workflow.nodes[nodeIndex].parameters = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.assignments) {
+        workflow.nodes[nodeIndex].parameters.assignments = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.assignments.assignments) {
+        workflow.nodes[nodeIndex].parameters.assignments.assignments = [];
+      }
+
+      // Update each assignment by name
+      const assignments = workflow.nodes[nodeIndex].parameters.assignments.assignments;
+      const updates = value as Array<{ name: string; value: string }>;
+
+      updates.forEach((update) => {
+        const assignmentIndex = assignments.findIndex((a: any) => a.name === update.name);
+        if (assignmentIndex !== -1) {
+          assignments[assignmentIndex].value = update.value;
+        }
+      });
     }
 
     // Send PUT request to update the workflow

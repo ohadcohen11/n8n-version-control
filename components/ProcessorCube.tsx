@@ -115,7 +115,62 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
   const processorColor = PROCESSOR_COLORS[processor.type] || PROCESSOR_COLORS['unknown'];
   const [editingOutputIndex, setEditingOutputIndex] = useState<number | null>(null);
   const [editingOutputValue, setEditingOutputValue] = useState('');
+  const [editAllMode, setEditAllMode] = useState(false);
+  const [allOutputValues, setAllOutputValues] = useState<{ [key: string]: string }>({});
   const [saving, setSaving] = useState(false);
+
+  const handleEditAll = () => {
+    // Initialize all values with stripped expressions
+    const initialValues: { [key: string]: string } = {};
+    processor.outputs.forEach((output) => {
+      initialValues[output.name] = stripExpression(output.value);
+    });
+    setAllOutputValues(initialValues);
+    setEditAllMode(true);
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      // Prepare all updates with proper expression syntax
+      const updates = processor.outputs.map((output) => ({
+        name: output.name,
+        value: addExpression(allOutputValues[output.name], output.value),
+      }));
+
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: processor.setNodeName,
+          field: 'outputAll',
+          value: updates,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update workflow');
+      }
+
+      setEditAllMode(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating outputs:', error);
+      alert('Failed to update outputs');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelAll = () => {
+    setEditAllMode(false);
+    setAllOutputValues({});
+  };
 
   const handleEditOutput = (index: number, currentValue: string) => {
     setEditingOutputIndex(index);
@@ -134,7 +189,7 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
         },
         body: JSON.stringify({
           workflowId,
-          nodeId: processor.setNodeName, // Use SET node name instead of processor ID
+          nodeId: processor.setNodeName,
           field: 'output',
           value: {
             name: outputName,
@@ -269,9 +324,42 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
 
       {/* Output Section */}
       <Box>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
-          OUTPUT:
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
+          <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
+            OUTPUT:
+          </Typography>
+          {!editAllMode ? (
+            <IconButton
+              size="small"
+              onClick={handleEditAll}
+              sx={{ p: 0.3 }}
+              title="Edit all outputs"
+            >
+              <EditIcon sx={{ fontSize: '0.9rem' }} />
+            </IconButton>
+          ) : (
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                size="small"
+                onClick={handleSaveAll}
+                disabled={saving}
+                sx={{ p: 0.3, color: 'success.main' }}
+                title="Save all changes"
+              >
+                <SaveIcon sx={{ fontSize: '0.9rem' }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={handleCancelAll}
+                disabled={saving}
+                sx={{ p: 0.3, color: 'error.main' }}
+                title="Cancel all changes"
+              >
+                <CloseIcon sx={{ fontSize: '0.9rem' }} />
+              </IconButton>
+            </Stack>
+          )}
+        </Box>
         <Box
           sx={{
             backgroundColor: 'grey.100',
@@ -290,13 +378,22 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                     {output.name}:
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    {editingOutputIndex === index ? (
+                    {editAllMode || editingOutputIndex === index ? (
                       <TextField
                         fullWidth
                         multiline
                         rows={2}
-                        value={editingOutputValue}
-                        onChange={(e) => setEditingOutputValue(e.target.value)}
+                        value={editAllMode ? allOutputValues[output.name] : editingOutputValue}
+                        onChange={(e) => {
+                          if (editAllMode) {
+                            setAllOutputValues({
+                              ...allOutputValues,
+                              [output.name]: e.target.value,
+                            });
+                          } else {
+                            setEditingOutputValue(e.target.value);
+                          }
+                        }}
                         disabled={saving}
                         size="small"
                         sx={{
@@ -325,36 +422,38 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                       </Box>
                     )}
                   </Box>
-                  <Box sx={{ flexShrink: 0 }}>
-                    {editingOutputIndex === index ? (
-                      <Stack direction="row" spacing={0.3}>
+                  {!editAllMode && (
+                    <Box sx={{ flexShrink: 0 }}>
+                      {editingOutputIndex === index ? (
+                        <Stack direction="row" spacing={0.3}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleSaveOutput(output.name, output.value)}
+                            disabled={saving}
+                            sx={{ p: 0.2, color: 'success.main' }}
+                          >
+                            <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={handleCancelEdit}
+                            disabled={saving}
+                            sx={{ p: 0.2, color: 'error.main' }}
+                          >
+                            <CloseIcon sx={{ fontSize: '0.8rem' }} />
+                          </IconButton>
+                        </Stack>
+                      ) : (
                         <IconButton
                           size="small"
-                          onClick={() => handleSaveOutput(output.name, output.value)}
-                          disabled={saving}
-                          sx={{ p: 0.2, color: 'success.main' }}
+                          onClick={() => handleEditOutput(index, output.value)}
+                          sx={{ p: 0.2 }}
                         >
-                          <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                          <EditIcon sx={{ fontSize: '0.8rem' }} />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={handleCancelEdit}
-                          disabled={saving}
-                          sx={{ p: 0.2, color: 'error.main' }}
-                        >
-                          <CloseIcon sx={{ fontSize: '0.8rem' }} />
-                        </IconButton>
-                      </Stack>
-                    ) : (
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditOutput(index, output.value)}
-                        sx={{ p: 0.2 }}
-                      >
-                        <EditIcon sx={{ fontSize: '0.8rem' }} />
-                      </IconButton>
-                    )}
-                  </Box>
+                      )}
+                    </Box>
+                  )}
                 </Box>
               </Box>
             ))
