@@ -69,7 +69,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
         {/* Search Query */}
         {fetcher.searchQuery && (
           <Box sx={{ mb: 1.5 }}>
-            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
               SEARCH:
             </Typography>
             <Box
@@ -78,7 +78,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
                 p: 1,
                 borderRadius: 1,
                 fontFamily: 'monospace',
-                fontSize: '0.7rem',
+                fontSize: '0.60rem',
                 overflowX: 'auto',
                 color: 'black',
                 wordBreak: 'break-all'
@@ -92,7 +92,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
         {/* Received After */}
         {fetcher.receivedAfter && (
           <Box sx={{ mb: 1.5 }}>
-            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
               RECEIVED AFTER:
             </Typography>
             <Box
@@ -101,7 +101,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
                 p: 1,
                 borderRadius: 1,
                 fontFamily: 'monospace',
-                fontSize: '0.7rem',
+                fontSize: '0.60rem',
                 overflowX: 'auto',
                 color: 'black',
                 wordBreak: 'break-all'
@@ -115,7 +115,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
         {/* Download Attachments */}
         {fetcher.downloadAttachments !== undefined && (
           <Box sx={{ mb: 0 }}>
-            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
               DOWNLOAD ATTACHMENTS:
             </Typography>
             <Box
@@ -124,7 +124,7 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
                 p: 1,
                 borderRadius: 1,
                 fontFamily: 'monospace',
-                fontSize: '0.7rem',
+                fontSize: '0.60rem',
                 color: 'black'
               }}
             >
