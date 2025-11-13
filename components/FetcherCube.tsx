@@ -6,12 +6,18 @@ interface FetcherNode {
   id: string;
   name: string;
   type: string;
+  // HTTP fields
   url?: string;
   method?: string;
   queryParameters?: { name: string; value: string }[];
   headers?: { name: string; value: string }[];
   body?: any;
   authentication?: string;
+  // Gmail fields
+  operation?: string;
+  searchQuery?: string;
+  receivedAfter?: string;
+  downloadAttachments?: boolean;
 }
 
 interface FetcherCubeProps {
@@ -20,9 +26,117 @@ interface FetcherCubeProps {
 
 export default function FetcherCube({ fetcher }: FetcherCubeProps) {
   const isHTTP = fetcher.type === 'n8n-nodes-base.httpRequest';
+  const isGmail = fetcher.type === 'n8n-nodes-base.gmail';
 
+  // Gmail display
+  if (isGmail) {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          border: '2px solid #EA4335',
+          width: '100%'
+        }}
+      >
+        {/* Title */}
+        <Box sx={{ mb: 2 }}>
+          <Chip
+            label={`GMAIL ${fetcher.operation?.toUpperCase() || 'GET ALL'}`}
+            sx={{
+              backgroundColor: '#EA4335',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              mb: 1
+            }}
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              color: 'text.secondary',
+              fontStyle: 'italic',
+              fontSize: '0.7rem'
+            }}
+          >
+            {fetcher.name}
+          </Typography>
+        </Box>
+
+        {/* Search Query */}
+        {fetcher.searchQuery && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+              SEARCH:
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: 'grey.100',
+                p: 1,
+                borderRadius: 1,
+                fontFamily: 'monospace',
+                fontSize: '0.7rem',
+                overflowX: 'auto',
+                color: 'black',
+                wordBreak: 'break-all'
+              }}
+            >
+              {fetcher.searchQuery}
+            </Box>
+          </Box>
+        )}
+
+        {/* Received After */}
+        {fetcher.receivedAfter && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+              RECEIVED AFTER:
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: 'grey.100',
+                p: 1,
+                borderRadius: 1,
+                fontFamily: 'monospace',
+                fontSize: '0.7rem',
+                overflowX: 'auto',
+                color: 'black',
+                wordBreak: 'break-all'
+              }}
+            >
+              {fetcher.receivedAfter}
+            </Box>
+          </Box>
+        )}
+
+        {/* Download Attachments */}
+        {fetcher.downloadAttachments !== undefined && (
+          <Box sx={{ mb: 0 }}>
+            <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+              DOWNLOAD ATTACHMENTS:
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: 'grey.100',
+                p: 1,
+                borderRadius: 1,
+                fontFamily: 'monospace',
+                fontSize: '0.7rem',
+                color: 'black'
+              }}
+            >
+              {fetcher.downloadAttachments ? 'Yes' : 'No'}
+            </Box>
+          </Box>
+        )}
+      </Paper>
+    );
+  }
+
+  // For other non-HTTP fetchers, show basic info
   if (!isHTTP) {
-    // For non-HTTP fetchers, show basic info
     return (
       <Paper
         elevation={3}

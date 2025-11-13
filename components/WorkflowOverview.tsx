@@ -53,12 +53,18 @@ interface FetcherNode {
   id: string;
   name: string;
   type: string;
+  // HTTP fields
   url?: string;
   method?: string;
   queryParameters?: { name: string; value: string }[];
   headers?: { name: string; value: string }[];
   body?: any;
   authentication?: string;
+  // Gmail fields
+  operation?: string;
+  searchQuery?: string;
+  receivedAfter?: string;
+  downloadAttachments?: boolean;
 }
 
 interface WorkflowAnalysis {

@@ -43,12 +43,18 @@ export interface FetcherNode {
   id: string;
   name: string;
   type: string;
+  // HTTP fields
   url?: string;
   method?: string;
   queryParameters?: { name: string; value: string }[];
   headers?: { name: string; value: string }[];
   body?: any;
   authentication?: string;
+  // Gmail fields
+  operation?: string;
+  searchQuery?: string;
+  receivedAfter?: string;
+  downloadAttachments?: boolean;
 }
 
 export interface WorkflowAnalysis {
@@ -325,6 +331,25 @@ function extractFetcherNode(nodes: N8nNode[]): FetcherNode | undefined {
     // Extract body if present
     if (params.body || params.bodyParameters) {
       fetcher.body = params.body || params.bodyParameters;
+    }
+  }
+  // Handle Gmail nodes
+  else if (fetcherNode.type === 'n8n-nodes-base.gmail') {
+    fetcher.operation = params.operation || 'getAll';
+
+    // Extract search query from filters
+    if (params.filters?.q) {
+      fetcher.searchQuery = params.filters.q;
+    }
+
+    // Extract receivedAfter filter
+    if (params.filters?.receivedAfter) {
+      fetcher.receivedAfter = params.filters.receivedAfter;
+    }
+
+    // Extract download attachments option
+    if (params.options?.downloadAttachments !== undefined) {
+      fetcher.downloadAttachments = params.options.downloadAttachments;
     }
   }
 
