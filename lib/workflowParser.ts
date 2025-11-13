@@ -1,0 +1,313 @@
+import cronstrue from 'cronstrue';
+
+interface N8nNode {
+  id: string;
+  name: string;
+  type: string;
+  typeVersion?: number;
+  position: [number, number];
+  parameters?: any;
+}
+
+interface N8nWorkflow {
+  id: string;
+  name: string;
+  nodes: N8nNode[];
+  connections: any;
+  settings?: any;
+  active?: boolean;
+}
+
+export interface WorkflowAnalysis {
+  workflowId: string;
+  workflowName: string;
+  trigger: string;
+  fetcherType: string;
+  translationNodesCount: number;
+  processorNodesCount: number;
+}
+
+// Node type categories
+const TRIGGER_TYPES = [
+  'n8n-nodes-base.scheduleTrigger',
+  'n8n-nodes-base.cronTrigger',
+  'n8n-nodes-base.webhook',
+  'n8n-nodes-base.manualTrigger',
+  'n8n-nodes-base.emailTrigger',
+  'n8n-nodes-base.start'
+];
+
+const FETCHER_TYPES = [
+  'n8n-nodes-base.httpRequest',
+  'n8n-nodes-base.gmail',
+  'n8n-nodes-base.googleSheets',
+  'n8n-nodes-base.googleDrive',
+  'n8n-nodes-base.postgres',
+  'n8n-nodes-base.mysql',
+  'n8n-nodes-base.mongodb',
+  'n8n-nodes-base.redis',
+  'n8n-nodes-base.airtable',
+  'n8n-nodes-base.notion',
+  'n8n-nodes-base.slack',
+  'n8n-nodes-base.telegram',
+  'n8n-nodes-base.discord'
+];
+
+const TRANSLATION_TYPES = [
+  'n8n-nodes-base.spreadsheetFile',
+  'n8n-nodes-base.compression',
+  'n8n-nodes-base.merge',
+  'n8n-nodes-base.aggregate',
+  'n8n-nodes-base.sort',
+  'n8n-nodes-base.removeDuplicates',
+  'n8n-nodes-base.filter',
+  'n8n-nodes-base.itemLists',
+  'n8n-nodes-base.code',
+  'n8n-nodes-base.function',
+  'n8n-nodes-base.moveToFtp',
+  'n8n-nodes-base.moveBinaryData',
+  'n8n-nodes-base.xml',
+  'n8n-nodes-base.html',
+  'n8n-nodes-base.crypto',
+  'n8n-nodes-base.executeWorkflow'
+];
+
+const IF_TYPES = ['n8n-nodes-base.if', 'n8n-nodes-base.switch'];
+const SET_TYPES = ['n8n-nodes-base.set'];
+
+/**
+ * Parse cron expression to human-readable format
+ */
+function parseCronExpression(cronExpression: string): string {
+  try {
+    return cronstrue.toString(cronExpression, { use24HourTimeFormat: true });
+  } catch (error) {
+    return cronExpression;
+  }
+}
+
+/**
+ * Extract trigger information from the first node
+ * IMPORTANT: Always prioritize schedule triggers over manual triggers
+ */
+function extractTrigger(nodes: N8nNode[]): string {
+  if (!nodes || nodes.length === 0) {
+    return 'No trigger found';
+  }
+
+  // PRIORITY 1: Look for schedule triggers first (highest priority)
+  const scheduleTrigger = nodes.find(node =>
+    node.type === 'n8n-nodes-base.scheduleTrigger' ||
+    node.type === 'n8n-nodes-base.cronTrigger'
+  );
+
+  // If schedule trigger exists, always use it
+  if (scheduleTrigger) {
+    const params = scheduleTrigger.parameters || {};
+
+    // Check for cron expression
+    if (params.rule?.interval) {
+      const interval = params.rule.interval;
+      if (Array.isArray(interval) && interval.length > 0) {
+        const cronExpr = interval[0].expression;
+        if (cronExpr) {
+          return parseCronExpression(cronExpr);
+        }
+      }
+    }
+
+    // Check for simple schedule (minutes, hours, days)
+    if (params.triggerTimes) {
+      const triggerTimes = params.triggerTimes;
+      if (triggerTimes.mode === 'everyMinute') {
+        return 'Every minute';
+      } else if (triggerTimes.mode === 'everyHour') {
+        return `Every hour at ${triggerTimes.minute || '00'} minutes`;
+      } else if (triggerTimes.mode === 'everyDay') {
+        return `Every day at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyWeek') {
+        return `Every week on ${triggerTimes.weekday || 'Monday'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyMonth') {
+        return `Every month on day ${triggerTimes.day || '1'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      }
+    }
+
+    return 'Scheduled (see workflow for details)';
+  }
+
+  // PRIORITY 2: Look for other trigger types (webhook, email, etc.)
+  const triggerNode = nodes.find(node =>
+    TRIGGER_TYPES.some(type => node.type === type)
+  ) || nodes[0];
+
+  if (!triggerNode) {
+    return 'Manual trigger';
+  }
+
+  // Handle Schedule Trigger (redundant check but kept for safety)
+  if (triggerNode.type === 'n8n-nodes-base.scheduleTrigger' ||
+      triggerNode.type === 'n8n-nodes-base.cronTrigger') {
+    const params = triggerNode.parameters || {};
+
+    // Check for cron expression
+    if (params.rule?.interval) {
+      const interval = params.rule.interval;
+      if (Array.isArray(interval) && interval.length > 0) {
+        const cronExpr = interval[0].expression;
+        if (cronExpr) {
+          return parseCronExpression(cronExpr);
+        }
+      }
+    }
+
+    // Check for simple schedule (minutes, hours, days)
+    if (params.triggerTimes) {
+      const triggerTimes = params.triggerTimes;
+      if (triggerTimes.mode === 'everyMinute') {
+        return 'Every minute';
+      } else if (triggerTimes.mode === 'everyHour') {
+        return `Every hour at ${triggerTimes.minute || '00'} minutes`;
+      } else if (triggerTimes.mode === 'everyDay') {
+        return `Every day at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyWeek') {
+        return `Every week on ${triggerTimes.weekday || 'Monday'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyMonth') {
+        return `Every month on day ${triggerTimes.day || '1'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      }
+    }
+
+    return 'Scheduled (see workflow for details)';
+  }
+
+  // Handle Webhook Trigger
+  if (triggerNode.type === 'n8n-nodes-base.webhook') {
+    return 'Webhook trigger';
+  }
+
+  // Handle Manual Trigger
+  if (triggerNode.type === 'n8n-nodes-base.manualTrigger' ||
+      triggerNode.type === 'n8n-nodes-base.start') {
+    return 'Manual trigger';
+  }
+
+  // Handle Email Trigger
+  if (triggerNode.type === 'n8n-nodes-base.emailTrigger') {
+    return 'Email trigger';
+  }
+
+  return 'Manual trigger';
+}
+
+/**
+ * Extract fetcher type from nodes
+ */
+function extractFetcherType(nodes: N8nNode[]): string {
+  if (!nodes || nodes.length === 0) {
+    return 'None';
+  }
+
+  // Look for fetcher nodes (excluding triggers)
+  const fetcherNode = nodes.find(node =>
+    FETCHER_TYPES.some(type => node.type === type)
+  );
+
+  if (!fetcherNode) {
+    return 'None';
+  }
+
+  // Map node types to human-readable names
+  const typeMap: { [key: string]: string } = {
+    'n8n-nodes-base.httpRequest': 'HTTP',
+    'n8n-nodes-base.gmail': 'Gmail',
+    'n8n-nodes-base.googleSheets': 'Google Sheets',
+    'n8n-nodes-base.googleDrive': 'Google Drive',
+    'n8n-nodes-base.postgres': 'PostgreSQL',
+    'n8n-nodes-base.mysql': 'MySQL',
+    'n8n-nodes-base.mongodb': 'MongoDB',
+    'n8n-nodes-base.redis': 'Redis',
+    'n8n-nodes-base.airtable': 'Airtable',
+    'n8n-nodes-base.notion': 'Notion',
+    'n8n-nodes-base.slack': 'Slack',
+    'n8n-nodes-base.telegram': 'Telegram',
+    'n8n-nodes-base.discord': 'Discord'
+  };
+
+  return typeMap[fetcherNode.type] || fetcherNode.type;
+}
+
+/**
+ * Count translation nodes
+ */
+function countTranslationNodes(nodes: N8nNode[]): number {
+  if (!nodes || nodes.length === 0) {
+    return 0;
+  }
+
+  return nodes.filter(node =>
+    TRANSLATION_TYPES.some(type => node.type === type)
+  ).length;
+}
+
+/**
+ * Count processor nodes (IF-SET pairs)
+ * Each IF node followed by SET nodes counts as one processor
+ */
+function countProcessorNodes(nodes: N8nNode[], connections: any): number {
+  if (!nodes || nodes.length === 0) {
+    return 0;
+  }
+
+  let processorCount = 0;
+  const ifNodes = nodes.filter(node => IF_TYPES.some(type => node.type === type));
+
+  // For each IF node, check if it has SET nodes connected to it
+  for (const ifNode of ifNodes) {
+    const nodeConnections = connections[ifNode.name];
+
+    if (nodeConnections && nodeConnections.main) {
+      // Check if any of the outputs connect to SET nodes
+      const outputs = nodeConnections.main;
+      let hasSetNode = false;
+
+      for (const output of outputs) {
+        if (output && Array.isArray(output)) {
+          for (const connection of output) {
+            const connectedNode = nodes.find(n => n.name === connection.node);
+            if (connectedNode && SET_TYPES.some(type => connectedNode.type === type)) {
+              hasSetNode = true;
+              break;
+            }
+          }
+        }
+        if (hasSetNode) break;
+      }
+
+      if (hasSetNode) {
+        processorCount++;
+      }
+    }
+  }
+
+  return processorCount;
+}
+
+/**
+ * Analyze a single workflow
+ */
+export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
+  return {
+    workflowId: workflow.id,
+    workflowName: workflow.name,
+    trigger: extractTrigger(workflow.nodes),
+    fetcherType: extractFetcherType(workflow.nodes),
+    translationNodesCount: countTranslationNodes(workflow.nodes),
+    processorNodesCount: countProcessorNodes(workflow.nodes, workflow.connections)
+  };
+}
+
+/**
+ * Analyze multiple workflows
+ */
+export function analyzeWorkflows(workflows: N8nWorkflow[]): WorkflowAnalysis[] {
+  return workflows.map(workflow => analyzeWorkflow(workflow));
+}

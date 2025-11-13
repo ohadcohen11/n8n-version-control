@@ -21,6 +21,7 @@ import DashboardStats from '../components/DashboardStats';
 import DiffViewer from '../components/DiffViewer';
 import CommitsView from '../components/CommitsView';
 import ProgressBar from '../components/ProgressBar';
+import WorkflowOverview from '../components/WorkflowOverview';
 
 const spin = keyframes`
   from {
@@ -57,10 +58,20 @@ interface Commit {
   };
 }
 
+interface WorkflowAnalysis {
+  workflowId: string;
+  workflowName: string;
+  trigger: string;
+  fetcherType: string;
+  translationNodesCount: number;
+  processorNodesCount: number;
+}
+
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'commits'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'commits' | 'workflow-overview'>('overview');
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [commits, setCommits] = useState<Commit[]>([]);
+  const [workflowAnalysis, setWorkflowAnalysis] = useState<WorkflowAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +81,7 @@ export default function Home() {
     { label: 'Fetching n8n workflows', status: 'pending' },
     { label: 'Fetching GitHub files', status: 'pending' },
     { label: 'Comparing workflows', status: 'pending' },
+    { label: 'Analyzing workflows', status: 'pending' },
     { label: 'Fetching commits', status: 'pending' },
   ]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -89,6 +101,7 @@ export default function Home() {
         { label: 'Fetching n8n workflows', status: 'pending' },
         { label: 'Fetching GitHub files', status: 'pending' },
         { label: 'Comparing workflows', status: 'pending' },
+        { label: 'Analyzing workflows', status: 'pending' },
         { label: 'Fetching commits', status: 'pending' },
       ]);
       setCurrentStep(0);
@@ -114,34 +127,48 @@ export default function Home() {
       updateStep(2, 'loading');
       setCurrentStep(2);
 
-      // Step 4: Fetch commits
+      // Step 4: Analyze workflows
       await new Promise((resolve) => setTimeout(resolve, 300));
       updateStep(3, 'loading');
       setCurrentStep(2.5);
 
+      const analysisPromise = fetch('/api/analyze-workflows');
+
+      // Step 5: Fetch commits
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      updateStep(4, 'loading');
+      setCurrentStep(3);
+
       const commitsPromise = fetch('/api/github/commits');
 
-      // Wait for both to complete
-      const [compareRes, commitsRes] = await Promise.all([
+      // Wait for all to complete
+      const [compareRes, analysisRes, commitsRes] = await Promise.all([
         comparePromise.then((res) => res.json()),
+        analysisPromise.then((res) => res.json()),
         commitsPromise.then((res) => res.json()),
       ]);
 
-      // Step 5: Complete comparison
+      // Step 6: Complete comparison
       updateStep(2, 'complete');
-      setCurrentStep(3);
+      setCurrentStep(3.5);
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      if (!compareRes.comparisons && !commitsRes) {
+      // Step 7: Complete analysis
+      updateStep(3, 'complete');
+      setCurrentStep(4);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      if (!compareRes.comparisons && !commitsRes && !analysisRes) {
         throw new Error('Failed to fetch data');
       }
 
       setComparisons(compareRes.comparisons || []);
+      setWorkflowAnalysis(analysisRes || []);
       setCommits(commitsRes || []);
 
-      // Step 6: Complete commits
-      updateStep(3, 'complete');
-      setCurrentStep(4);
+      // Step 8: Complete commits
+      updateStep(4, 'complete');
+      setCurrentStep(5);
 
       // Small delay to show 100% before hiding
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -224,6 +251,7 @@ export default function Home() {
                 sx={{ minHeight: 48 }}
               >
                 <Tab label="Workflow Changes" value="overview" />
+                <Tab label="Workflow Overview" value="workflow-overview" />
                 <Tab label="Recent Commits" value="commits" />
               </Tabs>
             </Box>
@@ -235,6 +263,19 @@ export default function Home() {
                     Git Changes
                   </Typography>
                   <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
+                </CardContent>
+              </Card>
+            ) : activeTab === 'workflow-overview' ? (
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                    Workflow Analysis
+                  </Typography>
+                  <WorkflowOverview
+                    workflows={workflowAnalysis}
+                    loading={loading}
+                    error={error}
+                  />
                 </CardContent>
               </Card>
             ) : (
