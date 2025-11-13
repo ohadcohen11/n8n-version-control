@@ -26,6 +26,7 @@ import {
   KeyboardArrowRight as ArrowRightIcon
 } from '@mui/icons-material';
 import ProcessorCube from './ProcessorCube';
+import FetcherCube from './FetcherCube';
 
 interface ProcessorCondition {
   field: string;
@@ -48,6 +49,18 @@ interface Processor {
   outputs: ProcessorOutput[];
 }
 
+interface FetcherNode {
+  id: string;
+  name: string;
+  type: string;
+  url?: string;
+  method?: string;
+  queryParameters?: { name: string; value: string }[];
+  headers?: { name: string; value: string }[];
+  body?: any;
+  authentication?: string;
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -56,6 +69,7 @@ interface WorkflowAnalysis {
   translationNodesCount: number;
   processorNodesCount: number;
   processors: Processor[];
+  fetcher?: FetcherNode;
 }
 
 interface WorkflowOverviewProps {
@@ -348,6 +362,17 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
                       <TableCell colSpan={6} sx={{ py: 0, backgroundColor: 'grey.50' }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Box sx={{ py: 3, px: 2 }}>
+                            {/* Fetcher Section */}
+                            {workflow.fetcher && (
+                              <Box sx={{ mb: 3 }}>
+                                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                                  Fetcher
+                                </Typography>
+                                <FetcherCube fetcher={workflow.fetcher} />
+                              </Box>
+                            )}
+
+                            {/* Processors Section */}
                             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
                               Processors ({workflow.processors.length})
                             </Typography>

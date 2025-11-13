@@ -39,6 +39,18 @@ export interface Processor {
   outputs: ProcessorOutput[];
 }
 
+export interface FetcherNode {
+  id: string;
+  name: string;
+  type: string;
+  url?: string;
+  method?: string;
+  queryParameters?: { name: string; value: string }[];
+  headers?: { name: string; value: string }[];
+  body?: any;
+  authentication?: string;
+}
+
 export interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -47,6 +59,7 @@ export interface WorkflowAnalysis {
   translationNodesCount: number;
   processorNodesCount: number;
   processors: Processor[];
+  fetcher?: FetcherNode;
 }
 
 // Node type categories
@@ -255,6 +268,67 @@ function extractFetcherType(nodes: N8nNode[]): string {
   };
 
   return typeMap[fetcherNode.type] || fetcherNode.type;
+}
+
+/**
+ * Extract detailed fetcher node information
+ */
+function extractFetcherNode(nodes: N8nNode[]): FetcherNode | undefined {
+  if (!nodes || nodes.length === 0) {
+    return undefined;
+  }
+
+  // Look for fetcher nodes
+  const fetcherNode = nodes.find(node =>
+    FETCHER_TYPES.some(type => node.type === type)
+  );
+
+  if (!fetcherNode) {
+    return undefined;
+  }
+
+  const params = fetcherNode.parameters || {};
+  const fetcher: FetcherNode = {
+    id: fetcherNode.id,
+    name: fetcherNode.name,
+    type: fetcherNode.type
+  };
+
+  // Handle HTTP Request nodes
+  if (fetcherNode.type === 'n8n-nodes-base.httpRequest') {
+    fetcher.url = params.url || '';
+    fetcher.method = params.method || params.requestMethod || 'GET';
+
+    // Extract query parameters
+    if (params.queryParameters?.parameters && Array.isArray(params.queryParameters.parameters)) {
+      fetcher.queryParameters = params.queryParameters.parameters.map((qp: any) => ({
+        name: qp.name || '',
+        value: qp.value || ''
+      }));
+    }
+
+    // Extract headers
+    if (params.headerParameters?.parameters && Array.isArray(params.headerParameters.parameters)) {
+      fetcher.headers = params.headerParameters.parameters.map((hp: any) => ({
+        name: hp.name || '',
+        value: hp.value || ''
+      }));
+    }
+
+    // Extract authentication type
+    if (params.authentication) {
+      fetcher.authentication = params.authentication;
+    } else if (params.options?.authentication) {
+      fetcher.authentication = params.options.authentication;
+    }
+
+    // Extract body if present
+    if (params.body || params.bodyParameters) {
+      fetcher.body = params.body || params.bodyParameters;
+    }
+  }
+
+  return fetcher;
 }
 
 /**
@@ -489,6 +563,7 @@ function extractProcessors(nodes: N8nNode[], connections: any): Processor[] {
  */
 export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
   const processors = extractProcessors(workflow.nodes, workflow.connections);
+  const fetcher = extractFetcherNode(workflow.nodes);
 
   return {
     workflowId: workflow.id,
@@ -497,7 +572,8 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
     fetcherType: extractFetcherType(workflow.nodes),
     translationNodesCount: countTranslationNodes(workflow.nodes),
     processorNodesCount: processors.length,
-    processors
+    processors,
+    fetcher
   };
 }
 

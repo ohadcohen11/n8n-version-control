@@ -79,6 +79,18 @@ interface Processor {
   outputs: ProcessorOutput[];
 }
 
+interface FetcherNode {
+  id: string;
+  name: string;
+  type: string;
+  url?: string;
+  method?: string;
+  queryParameters?: { name: string; value: string }[];
+  headers?: { name: string; value: string }[];
+  body?: any;
+  authentication?: string;
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -87,6 +99,7 @@ interface WorkflowAnalysis {
   translationNodesCount: number;
   processorNodesCount: number;
   processors: Processor[];
+  fetcher?: FetcherNode;
 }
 
 export default function Home() {
