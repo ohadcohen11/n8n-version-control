@@ -58,6 +58,27 @@ interface Commit {
   };
 }
 
+interface ProcessorCondition {
+  field: string;
+  operator: string | { type?: string; operation?: string };
+  value: string;
+  rawExpression?: string;
+}
+
+interface ProcessorOutput {
+  name: string;
+  value: string;
+}
+
+interface Processor {
+  id: string;
+  type: string;
+  ifNodeName: string;
+  setNodeName: string;
+  conditions: ProcessorCondition[];
+  outputs: ProcessorOutput[];
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -65,6 +86,7 @@ interface WorkflowAnalysis {
   fetcherType: string;
   translationNodesCount: number;
   processorNodesCount: number;
+  processors: Processor[];
 }
 
 export default function Home() {

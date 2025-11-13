@@ -18,6 +18,27 @@ interface N8nWorkflow {
   active?: boolean;
 }
 
+export interface ProcessorCondition {
+  field: string;
+  operator: string | { type?: string; operation?: string };
+  value: string;
+  rawExpression?: string;
+}
+
+export interface ProcessorOutput {
+  name: string;
+  value: string;
+}
+
+export interface Processor {
+  id: string;
+  type: string; // lead, sale, canceled, rev-share, etc.
+  ifNodeName: string;
+  setNodeName: string;
+  conditions: ProcessorCondition[];
+  outputs: ProcessorOutput[];
+}
+
 export interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -25,6 +46,7 @@ export interface WorkflowAnalysis {
   fetcherType: string;
   translationNodesCount: number;
   processorNodesCount: number;
+  processors: Processor[];
 }
 
 // Node type categories
@@ -292,16 +314,190 @@ function countProcessorNodes(nodes: N8nNode[], connections: any): number {
 }
 
 /**
+ * Extract conditions from an IF node
+ */
+function extractConditions(ifNode: N8nNode): ProcessorCondition[] {
+  const conditions: ProcessorCondition[] = [];
+  const params = ifNode.parameters || {};
+
+  // Handle IF node conditions
+  if (params.conditions) {
+    const conditionsData = params.conditions;
+
+    // Handle different IF node structures
+    if (conditionsData.conditions && Array.isArray(conditionsData.conditions)) {
+      for (const condition of conditionsData.conditions) {
+        // n8n uses leftValue and rightValue for conditions
+        const leftValue = condition.leftValue || condition.value1 || '';
+        const rightValue = condition.rightValue !== undefined && condition.rightValue !== null
+          ? String(condition.rightValue)
+          : (condition.value2 !== undefined && condition.value2 !== null ? String(condition.value2) : '');
+
+        conditions.push({
+          field: leftValue,
+          operator: condition.operator || '',  // This is an object with {type, operation}
+          value: rightValue,
+          rawExpression: ''
+        });
+      }
+    }
+  }
+
+  // If no structured conditions found, try to extract from raw parameters
+  if (conditions.length === 0 && params.conditions) {
+    // Sometimes conditions are stored differently, create a generic condition
+    conditions.push({
+      field: 'condition',
+      operator: 'custom',
+      value: JSON.stringify(params.conditions),
+      rawExpression: JSON.stringify(params.conditions)
+    });
+  }
+
+  return conditions;
+}
+
+/**
+ * Extract outputs from a SET node
+ */
+function extractOutputs(setNode: N8nNode): ProcessorOutput[] {
+  const outputs: ProcessorOutput[] = [];
+  const params = setNode.parameters || {};
+
+  // Handle different SET node parameter structures
+  // Modern n8n uses nested "assignments.assignments" field
+  if (params.assignments && params.assignments.assignments && Array.isArray(params.assignments.assignments)) {
+    for (const assignment of params.assignments.assignments) {
+      if (assignment.name && assignment.value !== undefined) {
+        outputs.push({
+          name: assignment.name,
+          value: String(assignment.value)
+        });
+      }
+    }
+  }
+  // Check for direct assignments array (older structure)
+  else if (params.assignments && Array.isArray(params.assignments)) {
+    for (const assignment of params.assignments) {
+      if (assignment.name && assignment.value !== undefined) {
+        outputs.push({
+          name: assignment.name,
+          value: String(assignment.value)
+        });
+      }
+    }
+  }
+  // Older n8n might use "values" field
+  else if (params.values && typeof params.values === 'object') {
+    for (const [key, value] of Object.entries(params.values)) {
+      outputs.push({
+        name: key,
+        value: String(value)
+      });
+    }
+  }
+  // Check for keepOnlySet field with values
+  else if (params.keepOnlySet && params.options?.values) {
+    const values = params.options.values;
+    for (const [key, value] of Object.entries(values)) {
+      outputs.push({
+        name: key,
+        value: String(value)
+      });
+    }
+  }
+
+  return outputs;
+}
+
+/**
+ * Determine processor type from SET node outputs
+ */
+function getProcessorType(outputs: ProcessorOutput[]): string {
+  // Look for the "event" field to determine type
+  const eventOutput = outputs.find(output => output.name === 'event');
+
+  if (eventOutput) {
+    const eventValue = eventOutput.value.toLowerCase().trim();
+    // Remove any n8n expression syntax if present
+    const cleanValue = eventValue.replace(/^=+\s*/, '').replace(/[{}"'\s]/g, '');
+
+    // Return the event type as-is (will be used for color coding)
+    return cleanValue || 'unknown';
+  }
+
+  return 'unknown';
+}
+
+/**
+ * Extract detailed processor information (IF-SET pairs with conditions and outputs)
+ */
+function extractProcessors(nodes: N8nNode[], connections: any): Processor[] {
+  const processors: Processor[] = [];
+
+  if (!nodes || nodes.length === 0) {
+    return processors;
+  }
+
+  const ifNodes = nodes.filter(node => IF_TYPES.some(type => node.type === type));
+
+  // For each IF node, find connected SET nodes
+  for (const ifNode of ifNodes) {
+    const nodeConnections = connections[ifNode.name];
+
+    if (nodeConnections && nodeConnections.main) {
+      const outputs = nodeConnections.main;
+
+      // Check each output branch (typically IF nodes have multiple outputs: true/false branches)
+      for (let outputIndex = 0; outputIndex < outputs.length; outputIndex++) {
+        const output = outputs[outputIndex];
+
+        if (output && Array.isArray(output)) {
+          for (const connection of output) {
+            const connectedNode = nodes.find(n => n.name === connection.node);
+
+            if (connectedNode && SET_TYPES.some(type => connectedNode.type === type)) {
+              // Extract conditions from IF node
+              const conditions = extractConditions(ifNode);
+
+              // Extract outputs from SET node
+              const setOutputs = extractOutputs(connectedNode);
+
+              // Determine processor type
+              const processorType = getProcessorType(setOutputs);
+
+              processors.push({
+                id: `${ifNode.id}-${connectedNode.id}`,
+                type: processorType,
+                ifNodeName: ifNode.name,
+                setNodeName: connectedNode.name,
+                conditions,
+                outputs: setOutputs
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return processors;
+}
+
+/**
  * Analyze a single workflow
  */
 export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
+  const processors = extractProcessors(workflow.nodes, workflow.connections);
+
   return {
     workflowId: workflow.id,
     workflowName: workflow.name,
     trigger: extractTrigger(workflow.nodes),
     fetcherType: extractFetcherType(workflow.nodes),
     translationNodesCount: countTranslationNodes(workflow.nodes),
-    processorNodesCount: countProcessorNodes(workflow.nodes, workflow.connections)
+    processorNodesCount: processors.length,
+    processors
   };
 }
 

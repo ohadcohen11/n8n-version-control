@@ -13,14 +13,40 @@ import {
   Box,
   Chip,
   Alert,
-  TableSortLabel
+  TableSortLabel,
+  IconButton,
+  Collapse
 } from '@mui/material';
 import {
   Schedule as ScheduleIcon,
   CloudDownload as FetchIcon,
   Transform as TransformIcon,
-  AccountTree as ProcessorIcon
+  AccountTree as ProcessorIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowRight as ArrowRightIcon
 } from '@mui/icons-material';
+import ProcessorCube from './ProcessorCube';
+
+interface ProcessorCondition {
+  field: string;
+  operator: string | { type?: string; operation?: string };
+  value: string;
+  rawExpression?: string;
+}
+
+interface ProcessorOutput {
+  name: string;
+  value: string;
+}
+
+interface Processor {
+  id: string;
+  type: string;
+  ifNodeName: string;
+  setNodeName: string;
+  conditions: ProcessorCondition[];
+  outputs: ProcessorOutput[];
+}
 
 interface WorkflowAnalysis {
   workflowId: string;
@@ -29,6 +55,7 @@ interface WorkflowAnalysis {
   fetcherType: string;
   translationNodesCount: number;
   processorNodesCount: number;
+  processors: Processor[];
 }
 
 interface WorkflowOverviewProps {
@@ -43,6 +70,7 @@ type SortDirection = 'asc' | 'desc';
 export default function WorkflowOverview({ workflows, loading, error }: WorkflowOverviewProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -53,6 +81,18 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
       setSortColumn(column);
       setSortDirection('asc');
     }
+  };
+
+  const toggleRow = (workflowId: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workflowId)) {
+        newSet.delete(workflowId);
+      } else {
+        newSet.add(workflowId);
+      }
+      return newSet;
+    });
   };
 
   // Sort workflows based on current sort column and direction
@@ -134,6 +174,9 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: 'primary.dark' }}>
+              <TableCell sx={{ fontWeight: 'bold', color: 'primary.contrastText', width: 50 }}>
+                {/* Expand column */}
+              </TableCell>
               <TableCell sx={{ fontWeight: 'bold', color: 'primary.contrastText' }}>
                 Workflow Name
               </TableCell>
@@ -216,71 +259,117 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedWorkflows.map((workflow) => (
-              <TableRow
-                key={workflow.workflowId}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-              >
-                <TableCell>
-                  <Typography variant="body1" fontWeight="medium">
-                    {workflow.workflowName}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {workflow.trigger === 'Manual trigger' ? (
-                      <Chip
-                        label={workflow.trigger}
-                        size="small"
-                        color="default"
-                        variant="outlined"
-                      />
-                    ) : (
-                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'success.main' }}>
-                        {workflow.trigger}
+            {sortedWorkflows.map((workflow) => {
+              const isExpanded = expandedRows.has(workflow.workflowId);
+              const hasProcessors = workflow.processors && workflow.processors.length > 0;
+
+              return (
+                <React.Fragment key={workflow.workflowId}>
+                  {/* Main workflow row */}
+                  <TableRow
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      },
+                    }}
+                  >
+                    <TableCell>
+                      {hasProcessors ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => toggleRow(workflow.workflowId)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          {isExpanded ? <ArrowDownIcon /> : <ArrowRightIcon />}
+                        </IconButton>
+                      ) : (
+                        <Box sx={{ width: 40 }} />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body1" fontWeight="medium">
+                        {workflow.workflowName}
                       </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  {workflow.fetcherType === 'None' ? (
-                    <Chip
-                      label="None"
-                      size="small"
-                      color="default"
-                      variant="outlined"
-                    />
-                  ) : (
-                    <Chip
-                      label={workflow.fetcherType}
-                      size="small"
-                      color="primary"
-                      variant="filled"
-                    />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {workflow.trigger === 'Manual trigger' ? (
+                          <Chip
+                            label={workflow.trigger}
+                            size="small"
+                            color="default"
+                            variant="outlined"
+                          />
+                        ) : (
+                          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'success.main' }}>
+                            {workflow.trigger}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      {workflow.fetcherType === 'None' ? (
+                        <Chip
+                          label="None"
+                          size="small"
+                          color="default"
+                          variant="outlined"
+                        />
+                      ) : (
+                        <Chip
+                          label={workflow.fetcherType}
+                          size="small"
+                          color="primary"
+                          variant="filled"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={workflow.translationNodesCount}
+                        size="small"
+                        color={workflow.translationNodesCount > 0 ? 'secondary' : 'default'}
+                        variant={workflow.translationNodesCount > 0 ? 'filled' : 'outlined'}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={workflow.processorNodesCount}
+                        size="small"
+                        color={workflow.processorNodesCount > 0 ? 'info' : 'default'}
+                        variant={workflow.processorNodesCount > 0 ? 'filled' : 'outlined'}
+                      />
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Expandable processor cubes row */}
+                  {hasProcessors && (
+                    <TableRow>
+                      <TableCell colSpan={6} sx={{ py: 0, backgroundColor: 'grey.50' }}>
+                        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                          <Box sx={{ py: 3, px: 2 }}>
+                            <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                              Processors ({workflow.processors.length})
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                gap: 3
+                              }}
+                            >
+                              {workflow.processors.map((processor) => (
+                                <ProcessorCube key={processor.id} processor={processor} />
+                              ))}
+                            </Box>
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={workflow.translationNodesCount}
-                    size="small"
-                    color={workflow.translationNodesCount > 0 ? 'secondary' : 'default'}
-                    variant={workflow.translationNodesCount > 0 ? 'filled' : 'outlined'}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={workflow.processorNodesCount}
-                    size="small"
-                    color={workflow.processorNodesCount > 0 ? 'info' : 'default'}
-                    variant={workflow.processorNodesCount > 0 ? 'filled' : 'outlined'}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
+                </React.Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
