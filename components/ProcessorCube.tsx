@@ -6,9 +6,14 @@ import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/ico
 
 // Helper function to strip n8n expression syntax for display
 const stripExpression = (value: string): string => {
-  // Remove only the leading expression syntax, preserve everything else
+  // Handle ={{ ... }} expressions
   if (value.startsWith('={{')) {
-    return value.slice(3); // Remove ={{ from start only
+    // If it's a pure expression (ends with }}), strip both start and end
+    if (value.endsWith('}}') && value.lastIndexOf('}}') === value.length - 2) {
+      return value.slice(3, -2).trim();
+    }
+    // If there's text after }}, only strip the start
+    return value.slice(3);
   } else if (value.startsWith('=')) {
     return value.slice(1); // Remove = from start only
   }
@@ -29,9 +34,18 @@ const addExpression = (value: string, originalValue: string): string => {
     return value;
   }
 
-  // Add back the same prefix that was removed
+  // Add back the same syntax that was removed
   if (hadCurlyBraces) {
-    return `={{${value}`;
+    // Check if original was a pure expression (ended with }})
+    const wasPureExpression = originalValue.endsWith('}}') && originalValue.lastIndexOf('}}') === originalValue.length - 2;
+
+    if (wasPureExpression) {
+      // Add both opening and closing
+      return `={{ ${value} }}`;
+    } else {
+      // Only add opening (value already has }} and text after)
+      return `={{${value}`;
+    }
   } else if (hadEquals) {
     return `=${value}`;
   }
