@@ -131,6 +131,10 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
   const [editingOutputValue, setEditingOutputValue] = useState('');
   const [editAllMode, setEditAllMode] = useState(false);
   const [allOutputValues, setAllOutputValues] = useState<{ [key: string]: string }>({});
+  const [editingIfNodeName, setEditingIfNodeName] = useState(false);
+  const [ifNodeNameValue, setIfNodeNameValue] = useState(processor.ifNodeName);
+  const [editingSetNodeName, setEditingSetNodeName] = useState(false);
+  const [setNodeNameValue, setSetNodeNameValue] = useState(processor.setNodeName);
   const [saving, setSaving] = useState(false);
 
   const handleEditAll = () => {
@@ -233,6 +237,70 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
     setEditingOutputValue('');
   };
 
+  const handleSaveIfNodeName = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: processor.ifNodeName, // Old name
+          field: 'nodeName',
+          value: ifNodeNameValue, // New name
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update IF node name');
+      }
+
+      setEditingIfNodeName(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating IF node name:', error);
+      alert('Failed to update IF node name');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSetNodeName = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: processor.setNodeName, // Old name
+          field: 'nodeName',
+          value: setNodeNameValue, // New name
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update SET node name');
+      }
+
+      setEditingSetNodeName(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating SET node name:', error);
+      alert('Failed to update SET node name');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Paper
       elevation={2}
@@ -257,27 +325,76 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
             height: 20
           }}
         />
-        {/* IF Node Name as Subtitle */}
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            textAlign: 'center',
-            color: 'text.secondary',
-            fontStyle: 'italic',
-            mt: 0.3,
-            fontSize: '0.6rem'
-          }}
-        >
-          {processor.ifNodeName}
-        </Typography>
       </Box>
 
       {/* IF Conditions Section */}
       <Box sx={{ mb: 0.8 }}>
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
-          IF CONDITIONS:
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
+              IF CONDITIONS:
+            </Typography>
+            {editingIfNodeName ? (
+              <TextField
+                value={ifNodeNameValue}
+                onChange={(e) => setIfNodeNameValue(e.target.value)}
+                disabled={saving}
+                size="small"
+                sx={{
+                  flex: 1,
+                  '& .MuiInputBase-root': {
+                    fontFamily: 'monospace',
+                    fontSize: '0.6rem',
+                    color: 'black',
+                    height: 20,
+                  },
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  fontSize: '0.6rem',
+                  fontFamily: 'monospace',
+                  color: 'text.secondary',
+                  fontStyle: 'italic',
+                }}
+              >
+                ({processor.ifNodeName})
+              </Typography>
+            )}
+          </Box>
+          {!editingIfNodeName ? (
+            <IconButton
+              size="small"
+              onClick={() => setEditingIfNodeName(true)}
+              sx={{ p: 0.3 }}
+            >
+              <EditIcon sx={{ fontSize: '0.8rem' }} />
+            </IconButton>
+          ) : (
+            <Stack direction="row" spacing={0.3}>
+              <IconButton
+                size="small"
+                onClick={handleSaveIfNodeName}
+                disabled={saving}
+                sx={{ p: 0.3, color: 'success.main' }}
+              >
+                <SaveIcon sx={{ fontSize: '0.8rem' }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setIfNodeNameValue(processor.ifNodeName);
+                  setEditingIfNodeName(false);
+                }}
+                disabled={saving}
+                sx={{ p: 0.3, color: 'error.main' }}
+              >
+                <CloseIcon sx={{ fontSize: '0.8rem' }} />
+              </IconButton>
+            </Stack>
+          )}
+        </Box>
         <Box
           sx={{
             backgroundColor: 'grey.100',
@@ -339,40 +456,103 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
       {/* Output Section */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
-          <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
-            OUTPUT:
-          </Typography>
-          {!editAllMode ? (
-            <IconButton
-              size="small"
-              onClick={handleEditAll}
-              sx={{ p: 0.3 }}
-              title="Edit all outputs"
-            >
-              <EditIcon sx={{ fontSize: '0.9rem' }} />
-            </IconButton>
-          ) : (
-            <Stack direction="row" spacing={0.5}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
+              OUTPUT:
+            </Typography>
+            {editingSetNodeName ? (
+              <TextField
+                value={setNodeNameValue}
+                onChange={(e) => setSetNodeNameValue(e.target.value)}
+                disabled={saving}
+                size="small"
+                sx={{
+                  flex: 1,
+                  '& .MuiInputBase-root': {
+                    fontFamily: 'monospace',
+                    fontSize: '0.6rem',
+                    color: 'black',
+                    height: 20,
+                  },
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  fontSize: '0.6rem',
+                  fontFamily: 'monospace',
+                  color: 'text.secondary',
+                  fontStyle: 'italic',
+                }}
+              >
+                ({processor.setNodeName})
+              </Typography>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+            {!editingSetNodeName ? (
               <IconButton
                 size="small"
-                onClick={handleSaveAll}
-                disabled={saving}
-                sx={{ p: 0.3, color: 'success.main' }}
-                title="Save all changes"
+                onClick={() => setEditingSetNodeName(true)}
+                sx={{ p: 0.3 }}
               >
-                <SaveIcon sx={{ fontSize: '0.9rem' }} />
+                <EditIcon sx={{ fontSize: '0.8rem' }} />
               </IconButton>
+            ) : (
+              <Stack direction="row" spacing={0.3}>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveSetNodeName}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'success.main' }}
+                >
+                  <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setSetNodeNameValue(processor.setNodeName);
+                    setEditingSetNodeName(false);
+                  }}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'error.main' }}
+                >
+                  <CloseIcon sx={{ fontSize: '0.8rem' }} />
+                </IconButton>
+              </Stack>
+            )}
+            {!editAllMode ? (
               <IconButton
                 size="small"
-                onClick={handleCancelAll}
-                disabled={saving}
-                sx={{ p: 0.3, color: 'error.main' }}
-                title="Cancel all changes"
+                onClick={handleEditAll}
+                sx={{ p: 0.3 }}
+                title="Edit all outputs"
               >
-                <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                <EditIcon sx={{ fontSize: '0.9rem' }} />
               </IconButton>
-            </Stack>
-          )}
+            ) : (
+              <Stack direction="row" spacing={0.5}>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveAll}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'success.main' }}
+                  title="Save all changes"
+                >
+                  <SaveIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleCancelAll}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'error.main' }}
+                  title="Cancel all changes"
+                >
+                  <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+              </Stack>
+            )}
+          </Box>
         </Box>
         <Box
           sx={{

@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     // Find and update the specific node (by ID or by name for SET nodes)
     let nodeIndex = workflow.nodes.findIndex((node: any) => node.id === nodeId);
 
-    // If not found by ID and it's an output update, try finding by name
-    if (nodeIndex === -1 && (field === 'output' || field === 'outputAll')) {
+    // If not found by ID and it's an output/nodeName update, try finding by name
+    if (nodeIndex === -1 && (field === 'output' || field === 'outputAll' || field === 'nodeName')) {
       nodeIndex = workflow.nodes.findIndex((node: any) => node.name === nodeId);
     }
 
@@ -110,6 +110,38 @@ export async function POST(request: Request) {
         if (assignmentIndex !== -1) {
           assignments[assignmentIndex].value = update.value;
         }
+      });
+    } else if (field === 'nodeName') {
+      // Update node name and all references in connections
+      const oldName = workflow.nodes[nodeIndex].name;
+      const newName = value;
+
+      // Update the node's name
+      workflow.nodes[nodeIndex].name = newName;
+
+      // Update connections where this node is the source
+      if (workflow.connections[oldName]) {
+        workflow.connections[newName] = workflow.connections[oldName];
+        delete workflow.connections[oldName];
+      }
+
+      // Update connections where this node is the destination
+      Object.keys(workflow.connections).forEach((sourceNode) => {
+        const sourceConnections = workflow.connections[sourceNode];
+
+        // Check each connection type (main, etc.)
+        Object.keys(sourceConnections).forEach((connectionType) => {
+          const connectionsList = sourceConnections[connectionType];
+
+          // Each connection list is an array of arrays
+          connectionsList.forEach((connectionArray: any[]) => {
+            connectionArray.forEach((connection: any) => {
+              if (connection.node === oldName) {
+                connection.node = newName;
+              }
+            });
+          });
+        });
       });
     }
 
