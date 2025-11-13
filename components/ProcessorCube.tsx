@@ -1,6 +1,44 @@
 'use client';
 
-import { Box, Typography, Chip, Paper } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Chip, Paper, IconButton, TextField, Stack } from '@mui/material';
+import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
+
+// Helper function to strip n8n expression syntax for display
+const stripExpression = (value: string): string => {
+  // Remove only the leading expression syntax, preserve everything else
+  if (value.startsWith('={{')) {
+    return value.slice(3); // Remove ={{ from start only
+  } else if (value.startsWith('=')) {
+    return value.slice(1); // Remove = from start only
+  }
+  return value;
+};
+
+// Helper function to add n8n expression syntax back when saving
+const addExpression = (value: string, originalValue: string): string => {
+  // If value is empty, return as is
+  if (!value.trim()) return value;
+
+  // Check what prefix the original value had
+  const hadCurlyBraces = originalValue.startsWith('={{');
+  const hadEquals = originalValue.startsWith('=');
+
+  // If user already added their own expression syntax, keep it
+  if (value.startsWith('={{') || value.startsWith('=')) {
+    return value;
+  }
+
+  // Add back the same prefix that was removed
+  if (hadCurlyBraces) {
+    return `={{${value}`;
+  } else if (hadEquals) {
+    return `=${value}`;
+  }
+
+  // Otherwise return as is
+  return value;
+};
 
 interface ProcessorCondition {
   field: string;
@@ -25,6 +63,8 @@ interface Processor {
 
 interface ProcessorCubeProps {
   processor: Processor;
+  workflowId: string;
+  onUpdate?: () => void;
 }
 
 // Processor type colors
@@ -71,8 +111,58 @@ const formatOperator = (operator: string | { type?: string; operation?: string }
   return operatorMap[operator.operation] || operator.operation;
 };
 
-export default function ProcessorCube({ processor }: ProcessorCubeProps) {
+export default function ProcessorCube({ processor, workflowId, onUpdate }: ProcessorCubeProps) {
   const processorColor = PROCESSOR_COLORS[processor.type] || PROCESSOR_COLORS['unknown'];
+  const [editingOutputIndex, setEditingOutputIndex] = useState<number | null>(null);
+  const [editingOutputValue, setEditingOutputValue] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleEditOutput = (index: number, currentValue: string) => {
+    setEditingOutputIndex(index);
+    setEditingOutputValue(stripExpression(currentValue));
+  };
+
+  const handleSaveOutput = async (outputName: string, originalValue: string) => {
+    setSaving(true);
+    try {
+      const valueWithExpression = addExpression(editingOutputValue, originalValue);
+
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: processor.setNodeName, // Use SET node name instead of processor ID
+          field: 'output',
+          value: {
+            name: outputName,
+            value: valueWithExpression,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update workflow');
+      }
+
+      setEditingOutputIndex(null);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating output:', error);
+      alert('Failed to update output');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingOutputIndex(null);
+    setEditingOutputValue('');
+  };
 
   return (
     <Paper
@@ -194,32 +284,78 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
         >
           {processor.outputs.length > 0 ? (
             processor.outputs.map((output, index) => (
-              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.2 : 0 }}>
-                <Typography
-                  component="div"
-                  sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.6rem',
-                    display: 'flex',
-                    gap: 0.3
-                  }}
-                >
-                  <Box component="span" sx={{ color: '#2e7d32', fontWeight: 'bold', flexShrink: 0 }}>
+              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.3 : 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.3 }}>
+                  <Box component="span" sx={{ color: '#2e7d32', fontWeight: 'bold', flexShrink: 0, fontSize: '0.6rem', fontFamily: 'monospace' }}>
                     {output.name}:
                   </Box>
-                  <Box
-                    component="pre"
-                    sx={{
-                      margin: 0,
-                      color: 'black',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      flex: 1
-                    }}
-                  >
-                    {output.value}
+                  <Box sx={{ flex: 1 }}>
+                    {editingOutputIndex === index ? (
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        value={editingOutputValue}
+                        onChange={(e) => setEditingOutputValue(e.target.value)}
+                        disabled={saving}
+                        size="small"
+                        sx={{
+                          '& .MuiInputBase-root': {
+                            fontFamily: 'monospace',
+                            fontSize: '0.6rem',
+                            backgroundColor: 'grey.100',
+                            color: 'black',
+                            p: 0.5,
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        component="pre"
+                        sx={{
+                          margin: 0,
+                          color: 'black',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontFamily: 'monospace',
+                          fontSize: '0.6rem',
+                        }}
+                      >
+                        {stripExpression(output.value)}
+                      </Box>
+                    )}
                   </Box>
-                </Typography>
+                  <Box sx={{ flexShrink: 0 }}>
+                    {editingOutputIndex === index ? (
+                      <Stack direction="row" spacing={0.3}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSaveOutput(output.name, output.value)}
+                          disabled={saving}
+                          sx={{ p: 0.2, color: 'success.main' }}
+                        >
+                          <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={handleCancelEdit}
+                          disabled={saving}
+                          sx={{ p: 0.2, color: 'error.main' }}
+                        >
+                          <CloseIcon sx={{ fontSize: '0.8rem' }} />
+                        </IconButton>
+                      </Stack>
+                    ) : (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditOutput(index, output.value)}
+                        sx={{ p: 0.2 }}
+                      >
+                        <EditIcon sx={{ fontSize: '0.8rem' }} />
+                      </IconButton>
+                    )}
+                  </Box>
+                </Box>
               </Box>
             ))
           ) : (

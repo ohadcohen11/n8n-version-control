@@ -395,7 +395,12 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                               }}
                             >
                               {workflow.processors.map((processor) => (
-                                <ProcessorCube key={processor.id} processor={processor} />
+                                <ProcessorCube
+                                  key={processor.id}
+                                  processor={processor}
+                                  workflowId={workflow.workflowId}
+                                  onUpdate={onUpdate}
+                                />
                               ))}
                             </Box>
                           </Box>
