@@ -354,7 +354,7 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
                             <Box
                               sx={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
                                 gap: 3
                               }}
                             >

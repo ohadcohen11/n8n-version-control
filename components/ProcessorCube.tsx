@@ -78,40 +78,54 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
     <Paper
       elevation={3}
       sx={{
-        p: 2,
+        p: 1.5,
         borderRadius: 2,
         border: `2px solid ${processorColor}`,
-        minWidth: 280,
-        maxWidth: 400,
+        width: '100%',
         height: 'auto'
       }}
     >
       {/* Type Badge */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 1.5 }}>
         <Chip
           label={processor.type.toUpperCase()}
           sx={{
             backgroundColor: processorColor,
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '0.875rem',
-            width: '100%'
+            fontSize: '0.8rem',
+            width: '100%',
+            height: 28
           }}
         />
+        {/* IF Node Name as Subtitle */}
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            textAlign: 'center',
+            color: 'text.secondary',
+            fontStyle: 'italic',
+            mt: 0.5,
+            fontSize: '0.7rem'
+          }}
+        >
+          {processor.ifNodeName}
+        </Typography>
       </Box>
 
       {/* IF Conditions Section */}
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 1.5 }}>
         <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
           IF CONDITIONS:
         </Typography>
         <Box
           sx={{
             backgroundColor: 'grey.100',
-            p: 1.5,
+            p: 1,
             borderRadius: 1,
             fontFamily: 'monospace',
-            fontSize: '0.75rem',
+            fontSize: '0.7rem',
             overflowX: 'auto'
           }}
         >
@@ -126,14 +140,14 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
                 : condition.rawExpression || 'Invalid condition';
 
               return (
-                <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 1 : 0 }}>
+                <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 0.5 : 0 }}>
                   <Typography
                     component="div"
                     sx={{
                       fontFamily: 'monospace',
-                      fontSize: '0.75rem',
+                      fontSize: '0.7rem',
                       display: 'flex',
-                      gap: 1
+                      gap: 0.5
                     }}
                   >
                     <Box component="span" sx={{ color: '#1976d2', fontWeight: 'bold', flexShrink: 0 }}>
@@ -171,23 +185,23 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
         <Box
           sx={{
             backgroundColor: 'grey.100',
-            p: 1.5,
+            p: 1,
             borderRadius: 1,
             fontFamily: 'monospace',
-            fontSize: '0.75rem',
+            fontSize: '0.7rem',
             overflowX: 'auto'
           }}
         >
           {processor.outputs.length > 0 ? (
             processor.outputs.map((output, index) => (
-              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.5 : 0 }}>
+              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.3 : 0 }}>
                 <Typography
                   component="div"
                   sx={{
                     fontFamily: 'monospace',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     display: 'flex',
-                    gap: 1
+                    gap: 0.5
                   }}
                 >
                   <Box component="span" sx={{ color: '#2e7d32', fontWeight: 'bold', flexShrink: 0 }}>
@@ -214,13 +228,6 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
             </Typography>
           )}
         </Box>
-      </Box>
-
-      {/* Debug Info (can be removed in production) */}
-      <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'grey.300' }}>
-        <Typography variant="caption" color="text.secondary">
-          IF: {processor.ifNodeName} → SET: {processor.setNodeName}
-        </Typography>
       </Box>
     </Paper>
   );
