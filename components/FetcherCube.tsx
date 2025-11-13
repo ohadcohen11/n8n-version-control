@@ -1,6 +1,8 @@
 'use client';
 
-import { Box, Typography, Paper, Chip } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Paper, Chip, IconButton, TextField, Stack } from '@mui/material';
+import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
 
 interface FetcherNode {
   id: string;
@@ -22,9 +24,51 @@ interface FetcherNode {
 
 interface FetcherCubeProps {
   fetcher: FetcherNode;
+  workflowId: string;
+  onUpdate?: () => void;
 }
 
-export default function FetcherCube({ fetcher }: FetcherCubeProps) {
+export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCubeProps) {
+  const [editingSearchQuery, setEditingSearchQuery] = useState(false);
+  const [searchQueryValue, setSearchQueryValue] = useState(fetcher.searchQuery || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveSearchQuery = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: fetcher.id,
+          field: 'searchQuery',
+          value: searchQueryValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update workflow');
+      }
+
+      setEditingSearchQuery(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating search query:', error);
+      alert('Failed to update search query');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setSearchQueryValue(fetcher.searchQuery || '');
+    setEditingSearchQuery(false);
+  };
   const isHTTP = fetcher.type === 'n8n-nodes-base.httpRequest';
   const isGmail = fetcher.type === 'n8n-nodes-base.gmail';
 
@@ -67,25 +111,74 @@ export default function FetcherCube({ fetcher }: FetcherCubeProps) {
         </Box>
 
         {/* Search Query */}
-        {fetcher.searchQuery && (
+        {(fetcher.searchQuery || editingSearchQuery) && (
           <Box sx={{ mb: 1.5 }}>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
-              SEARCH:
-            </Typography>
-            <Box
-              sx={{
-                backgroundColor: 'grey.100',
-                p: 1,
-                borderRadius: 1,
-                fontFamily: 'monospace',
-                fontSize: '0.60rem',
-                overflowX: 'auto',
-                color: 'black',
-                wordBreak: 'break-all'
-              }}
-            >
-              {fetcher.searchQuery}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
+                SEARCH:
+              </Typography>
+              {!editingSearchQuery ? (
+                <IconButton
+                  size="small"
+                  onClick={() => setEditingSearchQuery(true)}
+                  sx={{ p: 0.3 }}
+                >
+                  <EditIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+              ) : (
+                <Stack direction="row" spacing={0.5}>
+                  <IconButton
+                    size="small"
+                    onClick={handleSaveSearchQuery}
+                    disabled={saving}
+                    sx={{ p: 0.3, color: 'success.main' }}
+                  >
+                    <SaveIcon sx={{ fontSize: '0.9rem' }} />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
+                    sx={{ p: 0.3, color: 'error.main' }}
+                  >
+                    <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                  </IconButton>
+                </Stack>
+              )}
             </Box>
+            {editingSearchQuery ? (
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                value={searchQueryValue}
+                onChange={(e) => setSearchQueryValue(e.target.value)}
+                disabled={saving}
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontFamily: 'monospace',
+                    fontSize: '0.60rem',
+                    backgroundColor: 'grey.100',
+                  },
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  backgroundColor: 'grey.100',
+                  p: 1,
+                  borderRadius: 1,
+                  fontFamily: 'monospace',
+                  fontSize: '0.60rem',
+                  overflowX: 'auto',
+                  color: 'black',
+                  wordBreak: 'break-all'
+                }}
+              >
+                {fetcher.searchQuery}
+              </Box>
+            )}
           </Box>
         )}
 

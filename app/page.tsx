@@ -316,6 +316,7 @@ export default function Home() {
                     workflows={workflowAnalysis}
                     loading={loading}
                     error={error}
+                    onUpdate={handleRefresh}
                   />
                 </CardContent>
               </Card>

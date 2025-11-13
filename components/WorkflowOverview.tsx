@@ -82,12 +82,13 @@ interface WorkflowOverviewProps {
   workflows: WorkflowAnalysis[];
   loading?: boolean;
   error?: string | null;
+  onUpdate?: () => void;
 }
 
 type SortColumn = 'trigger' | 'fetcherType' | 'translationNodesCount' | 'processorNodesCount';
 type SortDirection = 'asc' | 'desc';
 
-export default function WorkflowOverview({ workflows, loading, error }: WorkflowOverviewProps) {
+export default function WorkflowOverview({ workflows, loading, error, onUpdate }: WorkflowOverviewProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -374,7 +375,11 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
                                 <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
                                   Fetcher
                                 </Typography>
-                                <FetcherCube fetcher={workflow.fetcher} />
+                                <FetcherCube
+                                  fetcher={workflow.fetcher}
+                                  workflowId={workflow.workflowId}
+                                  onUpdate={onUpdate}
+                                />
                               </Box>
                             )}
 
