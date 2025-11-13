@@ -367,11 +367,11 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
                     <TableRow>
                       <TableCell colSpan={6} sx={{ py: 0, backgroundColor: 'grey.50' }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                          <Box sx={{ py: 3, px: 2 }}>
+                          <Box sx={{ py: 2, px: 2 }}>
                             {/* Fetcher Section */}
                             {workflow.fetcher && (
-                              <Box sx={{ mb: 3 }}>
-                                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
                                   Fetcher
                                 </Typography>
                                 <FetcherCube fetcher={workflow.fetcher} />
@@ -379,14 +379,14 @@ export default function WorkflowOverview({ workflows, loading, error }: Workflow
                             )}
 
                             {/* Processors Section */}
-                            <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
                               Processors ({workflow.processors.length})
                             </Typography>
                             <Box
                               sx={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(3, 1fr)',
-                                gap: 3
+                                gap: 2
                               }}
                             >
                               {workflow.processors.map((processor) => (

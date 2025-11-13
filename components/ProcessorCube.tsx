@@ -76,26 +76,26 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
 
   return (
     <Paper
-      elevation={3}
+      elevation={2}
       sx={{
-        p: 1.5,
-        borderRadius: 2,
-        border: `2px solid ${processorColor}`,
+        p: 1,
+        borderRadius: 1,
+        border: `1px solid ${processorColor}`,
         width: '100%',
         height: 'auto'
       }}
     >
       {/* Type Badge */}
-      <Box sx={{ mb: 1.5 }}>
+      <Box sx={{ mb: 0.8 }}>
         <Chip
           label={processor.type.toUpperCase()}
           sx={{
             backgroundColor: processorColor,
             color: 'white',
             fontWeight: 'bold',
-            fontSize: '0.8rem',
+            fontSize: '0.65rem',
             width: '100%',
-            height: 28
+            height: 20
           }}
         />
         {/* IF Node Name as Subtitle */}
@@ -106,8 +106,8 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
             textAlign: 'center',
             color: 'text.secondary',
             fontStyle: 'italic',
-            mt: 0.5,
-            fontSize: '0.7rem'
+            mt: 0.3,
+            fontSize: '0.6rem'
           }}
         >
           {processor.ifNodeName}
@@ -115,17 +115,17 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
       </Box>
 
       {/* IF Conditions Section */}
-      <Box sx={{ mb: 1.5 }}>
-        <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+      <Box sx={{ mb: 0.8 }}>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
           IF CONDITIONS:
         </Typography>
         <Box
           sx={{
             backgroundColor: 'grey.100',
-            p: 1,
-            borderRadius: 1,
+            p: 0.5,
+            borderRadius: 0.5,
             fontFamily: 'monospace',
-            fontSize: '0.7rem',
+            fontSize: '0.6rem',
             overflowX: 'auto'
           }}
         >
@@ -140,14 +140,14 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
                 : condition.rawExpression || 'Invalid condition';
 
               return (
-                <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 0.5 : 0 }}>
+                <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 0.3 : 0 }}>
                   <Typography
                     component="div"
                     sx={{
                       fontFamily: 'monospace',
-                      fontSize: '0.7rem',
+                      fontSize: '0.6rem',
                       display: 'flex',
-                      gap: 0.5
+                      gap: 0.3
                     }}
                   >
                     <Box component="span" sx={{ color: '#1976d2', fontWeight: 'bold', flexShrink: 0 }}>
@@ -179,29 +179,29 @@ export default function ProcessorCube({ processor }: ProcessorCubeProps) {
 
       {/* Output Section */}
       <Box>
-        <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
           OUTPUT:
         </Typography>
         <Box
           sx={{
             backgroundColor: 'grey.100',
-            p: 1,
-            borderRadius: 1,
+            p: 0.5,
+            borderRadius: 0.5,
             fontFamily: 'monospace',
-            fontSize: '0.7rem',
+            fontSize: '0.6rem',
             overflowX: 'auto'
           }}
         >
           {processor.outputs.length > 0 ? (
             processor.outputs.map((output, index) => (
-              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.3 : 0 }}>
+              <Box key={index} sx={{ mb: index < processor.outputs.length - 1 ? 0.2 : 0 }}>
                 <Typography
                   component="div"
                   sx={{
                     fontFamily: 'monospace',
-                    fontSize: '0.7rem',
+                    fontSize: '0.6rem',
                     display: 'flex',
-                    gap: 0.5
+                    gap: 0.3
                   }}
                 >
                   <Box component="span" sx={{ color: '#2e7d32', fontWeight: 'bold', flexShrink: 0 }}>
