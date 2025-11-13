@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, TextField, Stack } from '@mui/material';
+import { Box, Typography, Paper, Chip, IconButton, TextField, Stack, Select, MenuItem } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
 
 interface FetcherNode {
@@ -31,6 +31,8 @@ interface FetcherCubeProps {
 export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCubeProps) {
   const [editingSearchQuery, setEditingSearchQuery] = useState(false);
   const [searchQueryValue, setSearchQueryValue] = useState(fetcher.searchQuery || '');
+  const [editingDownloadAttachments, setEditingDownloadAttachments] = useState(false);
+  const [downloadAttachmentsValue, setDownloadAttachmentsValue] = useState(fetcher.downloadAttachments ?? true);
   const [saving, setSaving] = useState(false);
 
   const handleSaveSearchQuery = async () => {
@@ -65,9 +67,46 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
     }
   };
 
+  const handleSaveDownloadAttachments = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: fetcher.id,
+          field: 'downloadAttachments',
+          value: downloadAttachmentsValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update workflow');
+      }
+
+      setEditingDownloadAttachments(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating download attachments:', error);
+      alert('Failed to update download attachments');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleCancelEdit = () => {
     setSearchQueryValue(fetcher.searchQuery || '');
     setEditingSearchQuery(false);
+  };
+
+  const handleCancelDownloadAttachmentsEdit = () => {
+    setDownloadAttachmentsValue(fetcher.downloadAttachments ?? true);
+    setEditingDownloadAttachments(false);
   };
   const isHTTP = fetcher.type === 'n8n-nodes-base.httpRequest';
   const isGmail = fetcher.type === 'n8n-nodes-base.gmail';
@@ -207,11 +246,63 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
         )}
 
         {/* Download Attachments */}
-        {fetcher.downloadAttachments !== undefined && (
-          <Box sx={{ mb: 0 }}>
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
+        <Box sx={{ mb: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary' }}>
               DOWNLOAD ATTACHMENTS:
             </Typography>
+            {!editingDownloadAttachments ? (
+              <IconButton
+                size="small"
+                onClick={() => setEditingDownloadAttachments(true)}
+                sx={{ p: 0.3 }}
+              >
+                <EditIcon sx={{ fontSize: '0.9rem' }} />
+              </IconButton>
+            ) : (
+              <Stack direction="row" spacing={0.5}>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveDownloadAttachments}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'success.main' }}
+                >
+                  <SaveIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleCancelDownloadAttachmentsEdit}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'error.main' }}
+                >
+                  <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+              </Stack>
+            )}
+          </Box>
+          {editingDownloadAttachments ? (
+            <Select
+              fullWidth
+              value={downloadAttachmentsValue ? 'true' : 'false'}
+              onChange={(e) => setDownloadAttachmentsValue(e.target.value === 'true')}
+              disabled={saving}
+              size="small"
+              sx={{
+                fontFamily: 'monospace',
+                fontSize: '0.60rem',
+                backgroundColor: 'grey.100',
+                color: 'black',
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  px: 1,
+                  color: 'black',
+                },
+              }}
+            >
+              <MenuItem value="true" sx={{ fontSize: '0.60rem', fontFamily: 'monospace' }}>true</MenuItem>
+              <MenuItem value="false" sx={{ fontSize: '0.60rem', fontFamily: 'monospace' }}>false</MenuItem>
+            </Select>
+          ) : (
             <Box
               sx={{
                 backgroundColor: 'grey.100',
@@ -222,10 +313,10 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
                 color: 'black'
               }}
             >
-              {fetcher.downloadAttachments ? 'Yes' : 'No'}
+              {downloadAttachmentsValue ? 'true' : 'false'}
             </Box>
-          </Box>
-        )}
+          )}
+        </Box>
       </Paper>
     );
   }

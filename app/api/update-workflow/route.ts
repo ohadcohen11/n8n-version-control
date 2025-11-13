@@ -54,6 +54,15 @@ export async function POST(request: Request) {
         workflow.nodes[nodeIndex].parameters.filters = {};
       }
       workflow.nodes[nodeIndex].parameters.filters.q = value;
+    } else if (field === 'downloadAttachments') {
+      // Gmail download attachments is in parameters.options.downloadAttachments
+      if (!workflow.nodes[nodeIndex].parameters) {
+        workflow.nodes[nodeIndex].parameters = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.options) {
+        workflow.nodes[nodeIndex].parameters.options = {};
+      }
+      workflow.nodes[nodeIndex].parameters.options.downloadAttachments = value;
     }
 
     // Send PUT request to update the workflow
