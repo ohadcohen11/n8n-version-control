@@ -160,6 +160,7 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
                     fontFamily: 'monospace',
                     fontSize: '0.60rem',
                     backgroundColor: 'grey.100',
+                    color: 'black',
                   },
                 }}
               />
