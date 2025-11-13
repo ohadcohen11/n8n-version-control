@@ -1,8 +1,52 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, Chip, Paper, IconButton, TextField, Stack } from '@mui/material';
+import { Box, Typography, Chip, Paper, IconButton, TextField, Stack, Select, MenuItem, FormControl } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
+
+// N8N operator mappings
+const OPERATOR_LABELS: { [key: string]: string } = {
+  // Common
+  exists: 'exists',
+  notExists: 'does not exist',
+  empty: 'is empty',
+  notEmpty: 'is not empty',
+  equals: 'is equal to',
+  notEquals: 'is not equal to',
+  // String
+  contains: 'contains',
+  notContains: 'does not contain',
+  startsWith: 'starts with',
+  notStartsWith: 'does not start with',
+  endsWith: 'ends with',
+  notEndsWith: 'does not end with',
+  regex: 'matches regex',
+  notRegex: 'does not match regex',
+  // Number
+  gt: 'is greater than',
+  lt: 'is less than',
+  gte: 'is greater than or equal to',
+  lte: 'is less than or equal to',
+  // DateTime
+  after: 'is after',
+  before: 'is before',
+  afterOrEquals: 'is after or equal to',
+  beforeOrEquals: 'is before or equal to',
+  // Boolean
+  true: 'is true',
+  false: 'is false',
+};
+
+// Operators by type
+const OPERATORS_BY_TYPE: { [key: string]: string[] } = {
+  string: ['exists', 'notExists', 'empty', 'notEmpty', 'equals', 'notEquals', 'contains', 'notContains', 'startsWith', 'notStartsWith', 'endsWith', 'notEndsWith', 'regex', 'notRegex'],
+  number: ['exists', 'notExists', 'empty', 'notEmpty', 'equals', 'notEquals', 'gt', 'gte', 'lt', 'lte'],
+  dateTime: ['exists', 'notExists', 'empty', 'notEmpty', 'equals', 'notEquals', 'after', 'before', 'afterOrEquals', 'beforeOrEquals'],
+  boolean: ['exists', 'notExists', 'empty', 'notEmpty', 'true', 'false', 'equals', 'notEquals'],
+};
+
+// Operations that don't need a right value
+const SINGLE_VALUE_OPERATIONS = ['exists', 'notExists', 'empty', 'notEmpty', 'true', 'false'];
 
 // Helper function to strip n8n expression syntax for display
 const stripExpression = (value: string): string => {
@@ -56,7 +100,7 @@ const addExpression = (value: string, originalValue: string): string => {
 
 interface ProcessorCondition {
   field: string;
-  operator: string | { type?: string; operation?: string };
+  operator: string | { type?: string; operation?: string; singleValue?: boolean };
   value: string;
   rawExpression?: string;
 }
@@ -135,6 +179,12 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
   const [ifNodeNameValue, setIfNodeNameValue] = useState(processor.ifNodeName);
   const [editingSetNodeName, setEditingSetNodeName] = useState(false);
   const [setNodeNameValue, setSetNodeNameValue] = useState(processor.setNodeName);
+  const [editingConditions, setEditingConditions] = useState(false);
+  const [conditionsValues, setConditionsValues] = useState<Array<{
+    field: string;
+    operator: { type: string; operation: string; singleValue?: boolean };
+    value: string;
+  }>>([]);
   const [saving, setSaving] = useState(false);
 
   const handleEditAll = () => {
@@ -301,6 +351,73 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
     }
   };
 
+  const handleEditConditions = () => {
+    // Initialize conditions with current values
+    const initialConditions = processor.conditions.map((condition) => ({
+      field: condition.field,
+      operator: typeof condition.operator === 'string'
+        ? { type: 'string', operation: condition.operator, singleValue: SINGLE_VALUE_OPERATIONS.includes(condition.operator) ? true : undefined }
+        : {
+            type: condition.operator.type || 'string',
+            operation: condition.operator.operation || 'equals',
+            singleValue: condition.operator.singleValue
+          },
+      value: condition.value,
+    }));
+    setConditionsValues(initialConditions);
+    setEditingConditions(true);
+  };
+
+  const handleSaveConditions = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/update-workflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workflowId,
+          nodeId: processor.ifNodeName,
+          field: 'conditions',
+          value: conditionsValues,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update conditions');
+      }
+
+      setEditingConditions(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error updating conditions:', error);
+      alert('Failed to update conditions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelConditionsEdit = () => {
+    setEditingConditions(false);
+    setConditionsValues([]);
+  };
+
+  const updateCondition = (index: number, updates: Partial<typeof conditionsValues[0]>) => {
+    const newConditions = [...conditionsValues];
+    newConditions[index] = { ...newConditions[index], ...updates };
+
+    // If operator changed, check if it needs singleValue flag
+    if (updates.operator) {
+      const isSingleValue = SINGLE_VALUE_OPERATIONS.includes(updates.operator.operation);
+      newConditions[index].operator.singleValue = isSingleValue ? true : undefined;
+    }
+
+    setConditionsValues(newConditions);
+  };
+
   return (
     <Paper
       elevation={2}
@@ -363,37 +480,70 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
               </Typography>
             )}
           </Box>
-          {!editingIfNodeName ? (
-            <IconButton
-              size="small"
-              onClick={() => setEditingIfNodeName(true)}
-              sx={{ p: 0.3 }}
-            >
-              <EditIcon sx={{ fontSize: '0.8rem' }} />
-            </IconButton>
-          ) : (
-            <Stack direction="row" spacing={0.3}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+            {!editingIfNodeName ? (
               <IconButton
                 size="small"
-                onClick={handleSaveIfNodeName}
-                disabled={saving}
-                sx={{ p: 0.3, color: 'success.main' }}
+                onClick={() => setEditingIfNodeName(true)}
+                sx={{ p: 0.3 }}
               >
-                <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                <EditIcon sx={{ fontSize: '0.8rem' }} />
               </IconButton>
+            ) : (
+              <Stack direction="row" spacing={0.3}>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveIfNodeName}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'success.main' }}
+                >
+                  <SaveIcon sx={{ fontSize: '0.8rem' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    setIfNodeNameValue(processor.ifNodeName);
+                    setEditingIfNodeName(false);
+                  }}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'error.main' }}
+                >
+                  <CloseIcon sx={{ fontSize: '0.8rem' }} />
+                </IconButton>
+              </Stack>
+            )}
+            {!editingConditions ? (
               <IconButton
                 size="small"
-                onClick={() => {
-                  setIfNodeNameValue(processor.ifNodeName);
-                  setEditingIfNodeName(false);
-                }}
-                disabled={saving}
-                sx={{ p: 0.3, color: 'error.main' }}
+                onClick={handleEditConditions}
+                sx={{ p: 0.3 }}
+                title="Edit all conditions"
               >
-                <CloseIcon sx={{ fontSize: '0.8rem' }} />
+                <EditIcon sx={{ fontSize: '0.9rem' }} />
               </IconButton>
-            </Stack>
-          )}
+            ) : (
+              <Stack direction="row" spacing={0.5}>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveConditions}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'success.main' }}
+                  title="Save all conditions"
+                >
+                  <SaveIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleCancelConditionsEdit}
+                  disabled={saving}
+                  sx={{ p: 0.3, color: 'error.main' }}
+                  title="Cancel"
+                >
+                  <CloseIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+              </Stack>
+            )}
+          </Box>
         </Box>
         <Box
           sx={{
@@ -405,50 +555,146 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
             overflowX: 'auto'
           }}
         >
-          {processor.conditions.length > 0 ? (
-            processor.conditions.map((condition, index) => {
-              // Format the operator using our helper function
-              const operatorStr = formatOperator(condition.operator);
+          {!editingConditions ? (
+            // Read-only display
+            processor.conditions.length > 0 ? (
+              processor.conditions.map((condition, index) => {
+                const operatorStr = formatOperator(condition.operator);
+                const conditionExpression = condition.field
+                  ? `${condition.field} ${operatorStr}${condition.value ? ' ' + condition.value : ''}`
+                  : condition.rawExpression || 'Invalid condition';
 
-              // Build the condition display
-              const conditionExpression = condition.field
-                ? `${condition.field} ${operatorStr}${condition.value ? ' ' + condition.value : ''}`
-                : condition.rawExpression || 'Invalid condition';
-
-              return (
-                <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 0.3 : 0 }}>
-                  <Typography
-                    component="div"
-                    sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.6rem',
-                      display: 'flex',
-                      gap: 0.3
-                    }}
-                  >
-                    <Box component="span" sx={{ color: '#1976d2', fontWeight: 'bold', flexShrink: 0 }}>
-                      if:
-                    </Box>
-                    <Box
-                      component="pre"
+                return (
+                  <Box key={index} sx={{ mb: index < processor.conditions.length - 1 ? 0.3 : 0 }}>
+                    <Typography
+                      component="div"
                       sx={{
-                        margin: 0,
-                        color: 'black',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        flex: 1
+                        fontFamily: 'monospace',
+                        fontSize: '0.6rem',
+                        display: 'flex',
+                        gap: 0.3
                       }}
                     >
-                      {conditionExpression}
-                    </Box>
-                  </Typography>
+                      <Box component="span" sx={{ color: '#1976d2', fontWeight: 'bold', flexShrink: 0 }}>
+                        if:
+                      </Box>
+                      <Box
+                        component="pre"
+                        sx={{
+                          margin: 0,
+                          color: 'black',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          flex: 1
+                        }}
+                      >
+                        {conditionExpression}
+                      </Box>
+                    </Typography>
+                  </Box>
+                );
+              })
+            ) : (
+              <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                No conditions found
+              </Typography>
+            )
+          ) : (
+            // Edit mode
+            conditionsValues.map((condition, index) => {
+              const isSingleValue = SINGLE_VALUE_OPERATIONS.includes(condition.operator.operation);
+              const availableOperations = OPERATORS_BY_TYPE[condition.operator.type] || OPERATORS_BY_TYPE.string;
+
+              return (
+                <Box key={index} sx={{ mb: index < conditionsValues.length - 1 ? 0.8 : 0, p: 0.5, border: '1px solid', borderColor: 'grey.300', borderRadius: 0.5 }}>
+                  {/* Data Type Selector */}
+                  <FormControl size="small" fullWidth sx={{ mb: 0.5 }}>
+                    <Select
+                      value={condition.operator.type}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        const newOperations = OPERATORS_BY_TYPE[newType];
+                        updateCondition(index, {
+                          operator: {
+                            type: newType,
+                            operation: newOperations[0],
+                            singleValue: SINGLE_VALUE_OPERATIONS.includes(newOperations[0]) ? true : undefined
+                          }
+                        });
+                      }}
+                      disabled={saving}
+                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'white', color: 'black' }}
+                    >
+                      <MenuItem value="string" sx={{ fontSize: '0.6rem' }}>String</MenuItem>
+                      <MenuItem value="number" sx={{ fontSize: '0.6rem' }}>Number</MenuItem>
+                      <MenuItem value="dateTime" sx={{ fontSize: '0.6rem' }}>Date & Time</MenuItem>
+                      <MenuItem value="boolean" sx={{ fontSize: '0.6rem' }}>Boolean</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {/* Left Value (Field) */}
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Field"
+                    value={condition.field}
+                    onChange={(e) => updateCondition(index, { field: e.target.value })}
+                    disabled={saving}
+                    sx={{
+                      mb: 0.5,
+                      '& .MuiInputBase-root': {
+                        fontSize: '0.6rem',
+                        height: 24,
+                        backgroundColor: 'white',
+                        color: 'black',
+                      },
+                    }}
+                  />
+
+                  {/* Operation Selector */}
+                  <FormControl size="small" fullWidth sx={{ mb: isSingleValue ? 0 : 0.5 }}>
+                    <Select
+                      value={condition.operator.operation}
+                      onChange={(e) => updateCondition(index, {
+                        operator: {
+                          ...condition.operator,
+                          operation: e.target.value,
+                          singleValue: SINGLE_VALUE_OPERATIONS.includes(e.target.value) ? true : undefined
+                        }
+                      })}
+                      disabled={saving}
+                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'white', color: 'black' }}
+                    >
+                      {availableOperations.map((op) => (
+                        <MenuItem key={op} value={op} sx={{ fontSize: '0.6rem' }}>
+                          {OPERATOR_LABELS[op]}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Right Value (only if not single value operation) */}
+                  {!isSingleValue && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Value"
+                      value={condition.value}
+                      onChange={(e) => updateCondition(index, { value: e.target.value })}
+                      disabled={saving}
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          fontSize: '0.6rem',
+                          height: 24,
+                          backgroundColor: 'white',
+                          color: 'black',
+                        },
+                      }}
+                    />
+                  )}
                 </Box>
               );
             })
-          ) : (
-            <Typography variant="body2" color="text.secondary" fontStyle="italic">
-              No conditions found
-            </Typography>
           )}
         </Box>
       </Box>

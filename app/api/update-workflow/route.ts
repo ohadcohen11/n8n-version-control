@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     // Find and update the specific node (by ID or by name for SET nodes)
     let nodeIndex = workflow.nodes.findIndex((node: any) => node.id === nodeId);
 
-    // If not found by ID and it's an output/nodeName update, try finding by name
-    if (nodeIndex === -1 && (field === 'output' || field === 'outputAll' || field === 'nodeName')) {
+    // If not found by ID and it's an output/nodeName/conditions update, try finding by name
+    if (nodeIndex === -1 && (field === 'output' || field === 'outputAll' || field === 'nodeName' || field === 'conditions')) {
       nodeIndex = workflow.nodes.findIndex((node: any) => node.name === nodeId);
     }
 
@@ -142,6 +142,36 @@ export async function POST(request: Request) {
             });
           });
         });
+      });
+    } else if (field === 'conditions') {
+      // Update IF node conditions
+      if (!workflow.nodes[nodeIndex].parameters) {
+        workflow.nodes[nodeIndex].parameters = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.conditions) {
+        workflow.nodes[nodeIndex].parameters.conditions = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.conditions.conditions) {
+        workflow.nodes[nodeIndex].parameters.conditions.conditions = [];
+      }
+
+      // Update the conditions array
+      const conditions = value as Array<{
+        field: string;
+        operator: { type: string; operation: string; singleValue?: boolean };
+        value: string;
+      }>;
+
+      // Map the new conditions to the n8n format
+      workflow.nodes[nodeIndex].parameters.conditions.conditions = conditions.map((cond, idx) => {
+        const existingCondition = workflow.nodes[nodeIndex].parameters.conditions.conditions[idx] || {};
+
+        return {
+          id: existingCondition.id || `cond${idx + 1}`,
+          leftValue: cond.field,
+          rightValue: cond.value,
+          operator: cond.operator,
+        };
       });
     }
 
