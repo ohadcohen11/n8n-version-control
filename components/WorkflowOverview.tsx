@@ -204,10 +204,21 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
 
   return (
     <Box sx={{ width: '100%' }}>
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
+      <TableContainer
+        sx={{
+          mt: 2,
+          backgroundColor: 'rgba(17, 25, 40, 0.95)',
+          borderRadius: 2,
+          border: '1px solid rgba(99, 102, 241, 0.2)',
+          overflow: 'hidden'
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'primary.dark' }}>
+            <TableRow sx={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)',
+              borderBottom: '2px solid rgba(139, 92, 246, 0.5)'
+            }}>
               <TableCell sx={{ fontWeight: 'bold', color: 'primary.contrastText', width: 50 }}>
                 {/* Expand column */}
               </TableCell>
@@ -302,8 +313,13 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                   {/* Main workflow row */}
                   <TableRow
                     sx={{
+                      backgroundColor: 'rgba(30, 41, 59, 0.5)',
+                      borderBottom: '1px solid rgba(99, 102, 241, 0.1)',
+                      transition: 'all 0.2s ease-in-out',
                       '&:hover': {
-                        backgroundColor: 'action.hover',
+                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                        transform: 'scale(1.01)',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)',
                       },
                     }}
                   >
@@ -379,13 +395,38 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                   {/* Expandable processor cubes row */}
                   {hasProcessors && (
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ py: 0, backgroundColor: 'grey.50' }}>
+                      <TableCell
+                        colSpan={6}
+                        sx={{
+                          py: 0,
+                          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                          borderTop: '2px solid rgba(139, 92, 246, 0.3)',
+                          borderBottom: '2px solid rgba(139, 92, 246, 0.3)',
+                        }}
+                      >
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                          <Box sx={{ py: 2, px: 2 }}>
+                          <Box
+                            sx={{
+                              py: 3,
+                              px: 3,
+                              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                              borderRadius: 1
+                            }}
+                          >
                             {/* Schedule Trigger Section */}
                             {workflow.triggerNode && workflow.triggerNode.triggerType === 'schedule' && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
+                              <Box sx={{ mb: 3 }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{
+                                    fontSize: '0.95rem',
+                                    fontWeight: 'bold',
+                                    mb: 1.5,
+                                    color: 'rgba(167, 139, 250, 1)',
+                                    letterSpacing: '0.5px',
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
                                   Schedule
                                 </Typography>
                                 <ScheduleTriggerCube
@@ -397,8 +438,18 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
 
                             {/* Fetcher Section */}
                             {workflow.fetcher && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
+                              <Box sx={{ mb: 3 }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{
+                                    fontSize: '0.95rem',
+                                    fontWeight: 'bold',
+                                    mb: 1.5,
+                                    color: 'rgba(96, 165, 250, 1)',
+                                    letterSpacing: '0.5px',
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
                                   Fetcher
                                 </Typography>
                                 <FetcherCube
@@ -410,7 +461,17 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                             )}
 
                             {/* Processors Section */}
-                            <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontSize: '0.95rem',
+                                fontWeight: 'bold',
+                                mb: 1.5,
+                                color: 'rgba(52, 211, 153, 1)',
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase'
+                              }}
+                            >
                               Processors ({workflow.processors.length})
                             </Typography>
                             <Box
@@ -441,26 +502,51 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
         </Table>
       </TableContainer>
 
-      <Box sx={{ mt: 3, p: 2, backgroundColor: 'background.paper', borderRadius: 1 }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          <strong>Legend:</strong>
+      <Box
+        sx={{
+          mt: 3,
+          p: 3,
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+          borderRadius: 2,
+          border: '1px solid rgba(99, 102, 241, 0.2)',
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'rgba(167, 139, 250, 1)',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            mb: 2
+          }}
+        >
+          Legend
         </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ScheduleIcon fontSize="small" color="action" />
-            <Typography variant="body2">Trigger: When the workflow runs</Typography>
+            <ScheduleIcon fontSize="small" sx={{ color: 'rgba(251, 191, 36, 1)' }} />
+            <Typography variant="body2" sx={{ color: 'rgba(226, 232, 240, 0.9)' }}>
+              Trigger: When the workflow runs
+            </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FetchIcon fontSize="small" color="action" />
-            <Typography variant="body2">Fetcher: Data source type</Typography>
+            <FetchIcon fontSize="small" sx={{ color: 'rgba(96, 165, 250, 1)' }} />
+            <Typography variant="body2" sx={{ color: 'rgba(226, 232, 240, 0.9)' }}>
+              Fetcher: Data source type
+            </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TransformIcon fontSize="small" color="action" />
-            <Typography variant="body2">Translation: Data transformation nodes</Typography>
+            <TransformIcon fontSize="small" sx={{ color: 'rgba(251, 113, 133, 1)' }} />
+            <Typography variant="body2" sx={{ color: 'rgba(226, 232, 240, 0.9)' }}>
+              Translation: Data transformation nodes
+            </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ProcessorIcon fontSize="small" color="action" />
-            <Typography variant="body2">Processors: IF-SET node pairs</Typography>
+            <ProcessorIcon fontSize="small" sx={{ color: 'rgba(52, 211, 153, 1)' }} />
+            <Typography variant="body2" sx={{ color: 'rgba(226, 232, 240, 0.9)' }}>
+              Processors: IF-SET node pairs
+            </Typography>
           </Box>
         </Box>
       </Box>

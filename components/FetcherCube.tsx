@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, TextField, Stack, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Chip, IconButton, TextField, Stack, Select, MenuItem } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
 
 interface FetcherNode {
@@ -114,13 +114,19 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
   // Gmail display
   if (isGmail) {
     return (
-      <Paper
-        elevation={2}
+      <Box
         sx={{
-          p: 1,
-          borderRadius: 1,
-          border: '1px solid #EA4335',
-          width: '100%'
+          p: 1.5,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, rgba(234, 67, 53, 0.15) 0%, rgba(234, 67, 53, 0.08) 100%)',
+          border: '2px solid rgba(234, 67, 53, 0.4)',
+          width: '100%',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            border: '2px solid rgba(234, 67, 53, 0.8)',
+            boxShadow: '0 4px 12px rgba(234, 67, 53, 0.3)',
+            transform: 'translateY(-2px)',
+          }
         }}
       >
         {/* Title */}
@@ -198,21 +204,23 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
                   '& .MuiInputBase-root': {
                     fontFamily: 'monospace',
                     fontSize: '0.60rem',
-                    backgroundColor: 'grey.100',
-                    color: 'black',
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    color: 'rgba(226, 232, 240, 0.95)',
+                    border: '1px solid rgba(234, 67, 53, 0.3)',
                   },
                 }}
               />
             ) : (
               <Box
                 sx={{
-                  backgroundColor: 'grey.100',
+                  backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(234, 67, 53, 0.3)',
                   p: 1,
                   borderRadius: 1,
                   fontFamily: 'monospace',
                   fontSize: '0.60rem',
                   overflowX: 'auto',
-                  color: 'black',
+                  color: 'rgba(226, 232, 240, 0.95)',
                   wordBreak: 'break-all'
                 }}
               >
@@ -230,13 +238,14 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
             </Typography>
             <Box
               sx={{
-                backgroundColor: 'grey.100',
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(234, 67, 53, 0.3)',
                 p: 1,
                 borderRadius: 1,
                 fontFamily: 'monospace',
                 fontSize: '0.60rem',
                 overflowX: 'auto',
-                color: 'black',
+                color: 'rgba(226, 232, 240, 0.95)',
                 wordBreak: 'break-all'
               }}
             >
@@ -290,12 +299,13 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
               sx={{
                 fontFamily: 'monospace',
                 fontSize: '0.60rem',
-                backgroundColor: 'grey.100',
-                color: 'black',
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                color: 'rgba(226, 232, 240, 0.95)',
+                border: '1px solid rgba(234, 67, 53, 0.3)',
                 '& .MuiSelect-select': {
                   py: 0.5,
                   px: 1,
-                  color: 'black',
+                  color: 'rgba(226, 232, 240, 0.95)',
                 },
               }}
             >
@@ -305,32 +315,39 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
           ) : (
             <Box
               sx={{
-                backgroundColor: 'grey.100',
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(234, 67, 53, 0.3)',
                 p: 1,
                 borderRadius: 1,
                 fontFamily: 'monospace',
                 fontSize: '0.60rem',
-                color: 'black'
+                color: 'rgba(226, 232, 240, 0.95)'
               }}
             >
               {downloadAttachmentsValue ? 'true' : 'false'}
             </Box>
           )}
         </Box>
-      </Paper>
+      </Box>
     );
   }
 
   // For other non-HTTP fetchers, show basic info
   if (!isHTTP) {
     return (
-      <Paper
-        elevation={2}
+      <Box
         sx={{
-          p: 1,
-          borderRadius: 1,
-          border: '1px solid #2196F3',
-          width: '100%'
+          p: 1.5,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.08) 100%)',
+          border: '2px solid rgba(33, 150, 243, 0.4)',
+          width: '100%',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            border: '2px solid rgba(33, 150, 243, 0.8)',
+            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+            transform: 'translateY(-2px)',
+          }
         }}
       >
         <Typography variant="subtitle2" sx={{ fontSize: '0.65rem', fontWeight: 'bold' }} gutterBottom>
@@ -339,19 +356,25 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
         <Typography variant="body2" sx={{ fontSize: '0.6rem' }} color="text.secondary">
           Type: {fetcher.type}
         </Typography>
-      </Paper>
+      </Box>
     );
   }
 
   // HTTP Request display
   return (
-    <Paper
-      elevation={2}
+    <Box
       sx={{
-        p: 1,
-        borderRadius: 1,
-        border: '1px solid #2196F3',
-        width: '100%'
+        p: 1.5,
+        borderRadius: 2,
+        background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.08) 100%)',
+        border: '2px solid rgba(33, 150, 243, 0.4)',
+        width: '100%',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          border: '2px solid rgba(33, 150, 243, 0.8)',
+          boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+          transform: 'translateY(-2px)',
+        }
       }}
     >
       {/* Title */}
@@ -388,13 +411,14 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
           </Typography>
           <Box
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(33, 150, 243, 0.3)',
               p: 0.5,
               borderRadius: 0.5,
               fontFamily: 'monospace',
               fontSize: '0.6rem',
               overflowX: 'auto',
-              color: 'black',
+              color: 'rgba(226, 232, 240, 0.95)',
               wordBreak: 'break-all'
             }}
           >
@@ -411,7 +435,8 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
           </Typography>
           <Box
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(33, 150, 243, 0.3)',
               p: 0.5,
               borderRadius: 0.5,
               fontFamily: 'monospace',
@@ -430,14 +455,14 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
                     gap: 0.3
                   }}
                 >
-                  <Box component="span" sx={{ color: '#d32f2f', fontWeight: 'bold', flexShrink: 0 }}>
+                  <Box component="span" sx={{ color: 'rgba(239, 68, 68, 1)', fontWeight: 'bold', flexShrink: 0 }}>
                     {qp.name}:
                   </Box>
                   <Box
                     component="pre"
                     sx={{
                       margin: 0,
-                      color: 'black',
+                      color: 'rgba(226, 232, 240, 0.95)',
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
                       flex: 1
@@ -460,7 +485,8 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
           </Typography>
           <Box
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(33, 150, 243, 0.3)',
               p: 0.5,
               borderRadius: 0.5,
               fontFamily: 'monospace',
@@ -479,14 +505,14 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
                     gap: 0.3
                   }}
                 >
-                  <Box component="span" sx={{ color: '#f57c00', fontWeight: 'bold', flexShrink: 0 }}>
+                  <Box component="span" sx={{ color: 'rgba(251, 146, 60, 1)', fontWeight: 'bold', flexShrink: 0 }}>
                     {header.name}:
                   </Box>
                   <Box
                     component="pre"
                     sx={{
                       margin: 0,
-                      color: 'black',
+                      color: 'rgba(226, 232, 240, 0.95)',
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
                       flex: 1
@@ -509,18 +535,19 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
           </Typography>
           <Box
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(33, 150, 243, 0.3)',
               p: 0.5,
               borderRadius: 0.5,
               fontFamily: 'monospace',
               fontSize: '0.6rem',
-              color: 'black'
+              color: 'rgba(226, 232, 240, 0.95)'
             }}
           >
             {fetcher.authentication}
           </Box>
         </Box>
       )}
-    </Paper>
+    </Box>
   );
 }

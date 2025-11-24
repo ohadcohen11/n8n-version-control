@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Box, Typography, Chip, Paper, IconButton, TextField, Stack, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Typography, Chip, IconButton, TextField, Stack, Select, MenuItem, FormControl } from '@mui/material';
 import { Edit as EditIcon, Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
 
 // N8N operator mappings
@@ -419,14 +419,20 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
   };
 
   return (
-    <Paper
-      elevation={2}
+    <Box
       sx={{
-        p: 1,
-        borderRadius: 1,
-        border: `1px solid ${processorColor}`,
+        p: 1.5,
+        borderRadius: 2,
+        background: `linear-gradient(135deg, ${processorColor}20 0%, ${processorColor}10 100%)`,
+        border: `2px solid ${processorColor}60`,
         width: '100%',
-        height: 'auto'
+        height: 'auto',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          border: `2px solid ${processorColor}`,
+          boxShadow: `0 4px 12px ${processorColor}40`,
+          transform: 'translateY(-2px)',
+        }
       }}
     >
       {/* Type Badge */}
@@ -462,7 +468,9 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                   '& .MuiInputBase-root': {
                     fontFamily: 'monospace',
                     fontSize: '0.6rem',
-                    color: 'black',
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    color: 'rgba(226, 232, 240, 0.95)',
+                    border: `1px solid ${processorColor}40`,
                     height: 20,
                   },
                 }}
@@ -547,7 +555,8 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
         </Box>
         <Box
           sx={{
-            backgroundColor: 'grey.100',
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            border: `1px solid ${processorColor}40`,
             p: 0.5,
             borderRadius: 0.5,
             fontFamily: 'monospace',
@@ -582,7 +591,7 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                         component="pre"
                         sx={{
                           margin: 0,
-                          color: 'black',
+                          color: 'rgba(226, 232, 240, 0.95)',
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
                           flex: 1
@@ -623,7 +632,7 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                         });
                       }}
                       disabled={saving}
-                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'white', color: 'black' }}
+                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'rgba(226, 232, 240, 0.95)', border: `1px solid ${processorColor}40` }}
                     >
                       <MenuItem value="string" sx={{ fontSize: '0.6rem' }}>String</MenuItem>
                       <MenuItem value="number" sx={{ fontSize: '0.6rem' }}>Number</MenuItem>
@@ -645,8 +654,9 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                       '& .MuiInputBase-root': {
                         fontSize: '0.6rem',
                         height: 24,
-                        backgroundColor: 'white',
-                        color: 'black',
+                        backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                        color: 'rgba(226, 232, 240, 0.95)',
+                        border: `1px solid ${processorColor}40`,
                       },
                     }}
                   />
@@ -663,7 +673,7 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                         }
                       })}
                       disabled={saving}
-                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'white', color: 'black' }}
+                      sx={{ fontSize: '0.6rem', height: 24, backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'rgba(226, 232, 240, 0.95)', border: `1px solid ${processorColor}40` }}
                     >
                       {availableOperations.map((op) => (
                         <MenuItem key={op} value={op} sx={{ fontSize: '0.6rem' }}>
@@ -717,7 +727,9 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                   '& .MuiInputBase-root': {
                     fontFamily: 'monospace',
                     fontSize: '0.6rem',
-                    color: 'black',
+                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                    color: 'rgba(226, 232, 240, 0.95)',
+                    border: `1px solid ${processorColor}40`,
                     height: 20,
                   },
                 }}
@@ -802,7 +814,8 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
         </Box>
         <Box
           sx={{
-            backgroundColor: 'grey.100',
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            border: `1px solid ${processorColor}40`,
             p: 0.5,
             borderRadius: 0.5,
             fontFamily: 'monospace',
@@ -840,8 +853,9 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                           '& .MuiInputBase-root': {
                             fontFamily: 'monospace',
                             fontSize: '0.6rem',
-                            backgroundColor: 'grey.100',
-                            color: 'black',
+                            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                            color: 'rgba(226, 232, 240, 0.95)',
+                            border: `1px solid ${processorColor}40`,
                             p: 0.5,
                           },
                         }}
@@ -851,7 +865,7 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
                         component="pre"
                         sx={{
                           margin: 0,
-                          color: 'black',
+                          color: 'rgba(226, 232, 240, 0.95)',
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
                           fontFamily: 'monospace',
@@ -904,6 +918,6 @@ export default function ProcessorCube({ processor, workflowId, onUpdate }: Proce
           )}
         </Box>
       </Box>
-    </Paper>
+    </Box>
   );
 }

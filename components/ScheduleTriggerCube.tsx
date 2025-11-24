@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Paper, Chip } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
 import { Schedule as ScheduleIcon, AccessTime as ClockIcon } from '@mui/icons-material';
 
 interface TriggerNode {
@@ -28,19 +28,18 @@ export default function ScheduleTriggerCube({ trigger, workflowId }: ScheduleTri
   const triggerColor = '#10b981'; // emerald green for schedule triggers
 
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
         p: 2,
         borderRadius: 2,
-        background: `linear-gradient(135deg, ${triggerColor}15 0%, ${triggerColor}08 100%)`,
-        border: `2px solid ${triggerColor}40`,
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%)',
+        border: '2px solid rgba(16, 185, 129, 0.4)',
         width: '100%',
         height: 'auto',
         transition: 'all 0.2s ease-in-out',
         '&:hover': {
-          border: `2px solid ${triggerColor}`,
-          boxShadow: `0 4px 12px ${triggerColor}30`,
+          border: '2px solid rgba(16, 185, 129, 0.8)',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
           transform: 'translateY(-2px)',
         }
       }}
@@ -94,12 +93,12 @@ export default function ScheduleTriggerCube({ trigger, workflowId }: ScheduleTri
           </Box>
           <Box
             sx={{
-              backgroundColor: 'rgba(0, 0, 0, 0.03)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
               p: 1.5,
               borderRadius: 1,
               fontSize: '0.85rem',
-              color: triggerColor,
+              color: 'rgba(52, 211, 153, 1)',
               fontWeight: 600,
               textAlign: 'center',
             }}
@@ -117,13 +116,13 @@ export default function ScheduleTriggerCube({ trigger, workflowId }: ScheduleTri
           </Typography>
           <Box
             sx={{
-              backgroundColor: 'rgba(0, 0, 0, 0.03)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
               p: 1,
               borderRadius: 1,
               fontFamily: 'monospace',
               fontSize: '0.75rem',
-              color: 'text.primary',
+              color: 'rgba(226, 232, 240, 0.95)',
               overflowX: 'auto',
               textAlign: 'center',
               fontWeight: 500,
@@ -150,6 +149,6 @@ export default function ScheduleTriggerCube({ trigger, workflowId }: ScheduleTri
           />
         </Box>
       )}
-    </Paper>
+    </Box>
   );
 }
