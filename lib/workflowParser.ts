@@ -55,6 +55,9 @@ export interface FetcherNode {
   searchQuery?: string;
   receivedAfter?: string;
   downloadAttachments?: boolean;
+  // Google Sheets fields
+  documentId?: string;
+  sheetId?: string;
 }
 
 export interface TriggerNode {
@@ -435,6 +438,28 @@ function extractFetcherNode(nodes: N8nNode[]): FetcherNode | undefined {
     // Extract download attachments option
     if (params.options?.downloadAttachments !== undefined) {
       fetcher.downloadAttachments = params.options.downloadAttachments;
+    }
+  }
+  // Handle Google Sheets nodes
+  else if (fetcherNode.type === 'n8n-nodes-base.googleSheets') {
+    // Extract document ID
+    if (params.documentId) {
+      // documentId can be a string or an object with value property
+      if (typeof params.documentId === 'string') {
+        fetcher.documentId = params.documentId;
+      } else if (params.documentId.value) {
+        fetcher.documentId = params.documentId.value;
+      }
+    }
+
+    // Extract sheet ID (stored in sheetName field)
+    if (params.sheetName) {
+      // sheetName can be a string or an object with value property
+      if (typeof params.sheetName === 'string') {
+        fetcher.sheetId = params.sheetName;
+      } else if (params.sheetName.value) {
+        fetcher.sheetId = params.sheetName.value;
+      }
     }
   }
 

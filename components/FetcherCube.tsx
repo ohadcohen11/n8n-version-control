@@ -20,6 +20,9 @@ interface FetcherNode {
   searchQuery?: string;
   receivedAfter?: string;
   downloadAttachments?: boolean;
+  // Google Sheets fields
+  documentId?: string;
+  sheetId?: string;
 }
 
 interface FetcherCubeProps {
@@ -110,6 +113,7 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
   };
   const isHTTP = fetcher.type === 'n8n-nodes-base.httpRequest';
   const isGmail = fetcher.type === 'n8n-nodes-base.gmail';
+  const isGoogleSheets = fetcher.type === 'n8n-nodes-base.googleSheets';
 
   // Gmail display
   if (isGmail) {
@@ -328,6 +332,99 @@ export default function FetcherCube({ fetcher, workflowId, onUpdate }: FetcherCu
             </Box>
           )}
         </Box>
+      </Box>
+    );
+  }
+
+  // Google Sheets display
+  if (isGoogleSheets) {
+    return (
+      <Box
+        sx={{
+          p: 1.5,
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, rgba(52, 168, 83, 0.15) 0%, rgba(52, 168, 83, 0.08) 100%)',
+          border: '2px solid rgba(52, 168, 83, 0.4)',
+          width: '100%',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            border: '2px solid rgba(52, 168, 83, 0.8)',
+            boxShadow: '0 4px 12px rgba(52, 168, 83, 0.3)',
+            transform: 'translateY(-2px)',
+          }
+        }}
+      >
+        {/* Title */}
+        <Box sx={{ mb: 0.8 }}>
+          <Chip
+            label="GOOGLE SHEETS"
+            sx={{
+              backgroundColor: '#34A853',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.65rem',
+              height: 20
+            }}
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              color: 'text.secondary',
+              fontStyle: 'italic',
+              fontSize: '0.6rem',
+              mt: 0.3
+            }}
+          >
+            {fetcher.name}
+          </Typography>
+        </Box>
+
+        {/* Document ID */}
+        {fetcher.documentId && (
+          <Box sx={{ mb: 0.8 }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
+              DOCUMENT ID:
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(52, 168, 83, 0.3)',
+                p: 0.5,
+                borderRadius: 0.5,
+                fontFamily: 'monospace',
+                fontSize: '0.6rem',
+                overflowX: 'auto',
+                color: 'rgba(226, 232, 240, 0.95)',
+                wordBreak: 'break-all'
+              }}
+            >
+              {fetcher.documentId}
+            </Box>
+          </Box>
+        )}
+
+        {/* Sheet ID */}
+        {fetcher.sheetId && (
+          <Box sx={{ mb: 0 }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'text.secondary', mb: 0.3 }}>
+              SHEET ID:
+            </Typography>
+            <Box
+              sx={{
+                backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(52, 168, 83, 0.3)',
+                p: 0.5,
+                borderRadius: 0.5,
+                fontFamily: 'monospace',
+                fontSize: '0.6rem',
+                color: 'rgba(226, 232, 240, 0.95)'
+              }}
+            >
+              {fetcher.sheetId}
+            </Box>
+          </Box>
+        )}
       </Box>
     );
   }
