@@ -12,7 +12,6 @@ import {
   Alert,
   CircularProgress,
   Stack,
-  IconButton,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { keyframes } from '@mui/material/styles';
@@ -109,12 +108,21 @@ interface WorkflowAnalysis {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'commits' | 'workflow-overview'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'commits' | 'workflow-overview'>('workflow-overview');
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [commits, setCommits] = useState<Commit[]>([]);
   const [workflowAnalysis, setWorkflowAnalysis] = useState<WorkflowAnalysis[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Track loading state per tab
+  const [loadingOverview, setLoadingOverview] = useState(false);
+  const [loadingWorkflowAnalysis, setLoadingWorkflowAnalysis] = useState(false);
+  const [loadingCommits, setLoadingCommits] = useState(false);
+
+  // Track which tabs have been loaded
+  const [overviewLoaded, setOverviewLoaded] = useState(false);
+  const [workflowAnalysisLoaded, setWorkflowAnalysisLoaded] = useState(false);
+  const [commitsLoaded, setCommitsLoaded] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [loadingSteps, setLoadingSteps] = useState<
     Array<{ label: string; status: 'pending' | 'loading' | 'complete' }>
@@ -122,8 +130,6 @@ export default function Home() {
     { label: 'Fetching n8n workflows', status: 'pending' },
     { label: 'Fetching GitHub files', status: 'pending' },
     { label: 'Comparing workflows', status: 'pending' },
-    { label: 'Analyzing workflows', status: 'pending' },
-    { label: 'Fetching commits', status: 'pending' },
   ]);
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -133,104 +139,113 @@ export default function Home() {
     );
   };
 
-  const fetchData = async () => {
+  // Fetch Version Control data
+  const fetchOverviewData = async () => {
+    if (overviewLoaded) return; // Don't refetch if already loaded
+
     try {
       setError(null);
+      setLoadingOverview(true);
 
-      // Reset steps
+      // Reset steps for overview
       setLoadingSteps([
         { label: 'Fetching n8n workflows', status: 'pending' },
         { label: 'Fetching GitHub files', status: 'pending' },
         { label: 'Comparing workflows', status: 'pending' },
-        { label: 'Analyzing workflows', status: 'pending' },
-        { label: 'Fetching commits', status: 'pending' },
       ]);
       setCurrentStep(0);
 
-      // Step 1: Fetch n8n workflows
       updateStep(0, 'loading');
       setCurrentStep(0.5);
 
-      const comparePromise = fetch('/api/compare');
-
-      // Step 2: Fetch GitHub files (starts in parallel)
       await new Promise((resolve) => setTimeout(resolve, 200));
       updateStep(1, 'loading');
       setCurrentStep(1);
 
-      // Step 3: Wait for comparison to complete
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      updateStep(0, 'complete');
-      setCurrentStep(1.5);
+      const compareRes = await fetch('/api/compare').then((res) => res.json());
 
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      updateStep(0, 'complete');
       updateStep(1, 'complete');
       updateStep(2, 'loading');
       setCurrentStep(2);
 
-      // Step 4: Analyze workflows
       await new Promise((resolve) => setTimeout(resolve, 300));
-      updateStep(3, 'loading');
-      setCurrentStep(2.5);
-
-      const analysisPromise = fetch('/api/analyze-workflows');
-
-      // Step 5: Fetch commits
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      updateStep(4, 'loading');
+      updateStep(2, 'complete');
       setCurrentStep(3);
 
-      const commitsPromise = fetch('/api/github/commits');
-
-      // Wait for all to complete
-      const [compareRes, analysisRes, commitsRes] = await Promise.all([
-        comparePromise.then((res) => res.json()),
-        analysisPromise.then((res) => res.json()),
-        commitsPromise.then((res) => res.json()),
-      ]);
-
-      // Step 6: Complete comparison
-      updateStep(2, 'complete');
-      setCurrentStep(3.5);
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Step 7: Complete analysis
-      updateStep(3, 'complete');
-      setCurrentStep(4);
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      if (!compareRes.comparisons && !commitsRes && !analysisRes) {
-        throw new Error('Failed to fetch data');
-      }
-
       setComparisons(compareRes.comparisons || []);
-      setWorkflowAnalysis(analysisRes || []);
-      setCommits(commitsRes || []);
+      setOverviewLoaded(true);
 
-      // Step 8: Complete commits
-      updateStep(4, 'complete');
-      setCurrentStep(5);
-
-      // Small delay to show 100% before hiding
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(
-        'Failed to fetch data. Please check your API credentials in .env.local'
-      );
+      console.error('Error fetching overview data:', err);
+      setError('Failed to fetch version control data');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingOverview(false);
     }
   };
 
+  // Fetch Workflow Analysis data
+  const fetchWorkflowAnalysis = async () => {
+    if (workflowAnalysisLoaded) return; // Don't refetch if already loaded
+
+    try {
+      setError(null);
+      setLoadingWorkflowAnalysis(true);
+
+      const analysisRes = await fetch('/api/analyze-workflows').then((res) => res.json());
+      setWorkflowAnalysis(analysisRes || []);
+      setWorkflowAnalysisLoaded(true);
+    } catch (err) {
+      console.error('Error fetching workflow analysis:', err);
+      setError('Failed to fetch workflow analysis');
+    } finally {
+      setLoadingWorkflowAnalysis(false);
+    }
+  };
+
+  // Fetch Commits data
+  const fetchCommitsData = async () => {
+    if (commitsLoaded) return; // Don't refetch if already loaded
+
+    try {
+      setError(null);
+      setLoadingCommits(true);
+
+      const commitsRes = await fetch('/api/github/commits').then((res) => res.json());
+      setCommits(commitsRes || []);
+      setCommitsLoaded(true);
+    } catch (err) {
+      console.error('Error fetching commits:', err);
+      setError('Failed to fetch commits data');
+    } finally {
+      setLoadingCommits(false);
+    }
+  };
+
+  // Load data based on active tab
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (activeTab === 'overview' && !overviewLoaded && !loadingOverview) {
+      fetchOverviewData();
+    } else if (activeTab === 'workflow-overview' && !workflowAnalysisLoaded && !loadingWorkflowAnalysis) {
+      fetchWorkflowAnalysis();
+    } else if (activeTab === 'commits' && !commitsLoaded && !loadingCommits) {
+      fetchCommitsData();
+    }
+  }, [activeTab]);
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+    // Reset the loaded flag for current tab to force refresh
+    if (activeTab === 'overview') {
+      setOverviewLoaded(false);
+      fetchOverviewData();
+    } else if (activeTab === 'workflow-overview') {
+      setWorkflowAnalysisLoaded(false);
+      fetchWorkflowAnalysis();
+    } else if (activeTab === 'commits') {
+      setCommitsLoaded(false);
+      fetchCommitsData();
+    }
   };
 
   const stats = {
@@ -241,9 +256,15 @@ export default function Home() {
     onlyInGitHub: comparisons.filter((c) => c.status === 'only_in_github').length,
   };
 
+  // Determine if current tab is loading
+  const isCurrentTabLoading =
+    (activeTab === 'overview' && loadingOverview) ||
+    (activeTab === 'workflow-overview' && loadingWorkflowAnalysis) ||
+    (activeTab === 'commits' && loadingCommits);
+
   return (
     <Layout>
-      {(loading || refreshing) && (
+      {loadingOverview && activeTab === 'overview' && (
         <ProgressBar
           steps={loadingSteps}
           currentStep={currentStep}
@@ -260,12 +281,12 @@ export default function Home() {
             startIcon={
               <RefreshIcon
                 sx={{
-                  animation: refreshing ? `${spin} 1s linear infinite` : 'none',
+                  animation: isCurrentTabLoading ? `${spin} 1s linear infinite` : 'none',
                 }}
               />
             }
             onClick={handleRefresh}
-            disabled={refreshing}
+            disabled={isCurrentTabLoading}
           >
             Refresh
           </Button>
@@ -277,60 +298,74 @@ export default function Home() {
           </Alert>
         )}
 
-        {loading && !refreshing ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
-            <CircularProgress size={60} />
-          </Box>
-        ) : (
-          <>
-            <DashboardStats {...stats} />
+        {overviewLoaded && <DashboardStats {...stats} />}
 
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-              <Tabs
-                value={activeTab}
-                onChange={(_, newValue) => setActiveTab(newValue)}
-                sx={{ minHeight: 48 }}
-              >
-                <Tab label="Workflow Changes" value="overview" />
-                <Tab label="Workflow Overview" value="workflow-overview" />
-                <Tab label="Recent Commits" value="commits" />
-              </Tabs>
-            </Box>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{ minHeight: 48 }}
+          >
+            <Tab label="Workflow Changes" value="overview" />
+            <Tab label="Workflow Overview" value="workflow-overview" />
+            <Tab label="Recent Commits" value="commits" />
+          </Tabs>
+        </Box>
 
-            {activeTab === 'overview' ? (
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                    Git Changes
-                  </Typography>
-                  <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
-                </CardContent>
-              </Card>
-            ) : activeTab === 'workflow-overview' ? (
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                    Workflow Analysis
-                  </Typography>
-                  <WorkflowOverview
-                    workflows={workflowAnalysis}
-                    loading={loading}
-                    error={error}
-                    onUpdate={handleRefresh}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                    Recent Commits
-                  </Typography>
-                  <CommitsView commits={commits} />
-                </CardContent>
-              </Card>
-            )}
-          </>
+        {activeTab === 'overview' && (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Git Changes
+              </Typography>
+              {loadingOverview ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+                  <CircularProgress size={60} />
+                </Box>
+              ) : (
+                <DiffViewer comparisons={comparisons} onSync={handleRefresh} />
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'workflow-overview' && (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Workflow Analysis
+              </Typography>
+              {loadingWorkflowAnalysis ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+                  <CircularProgress size={60} />
+                </Box>
+              ) : (
+                <WorkflowOverview
+                  workflows={workflowAnalysis}
+                  loading={loadingWorkflowAnalysis}
+                  error={error}
+                  onUpdate={handleRefresh}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'commits' && (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+                Recent Commits
+              </Typography>
+              {loadingCommits ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+                  <CircularProgress size={60} />
+                </Box>
+              ) : (
+                <CommitsView commits={commits} />
+              )}
+            </CardContent>
+          </Card>
         )}
       </Stack>
     </Layout>
