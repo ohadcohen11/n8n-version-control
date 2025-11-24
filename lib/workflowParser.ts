@@ -57,6 +57,18 @@ export interface FetcherNode {
   downloadAttachments?: boolean;
 }
 
+export interface TriggerNode {
+  id: string;
+  name: string;
+  type: string;
+  triggerType: 'schedule' | 'manual' | 'webhook' | 'email';
+  // Schedule-specific fields
+  cronExpression?: string;
+  humanReadable?: string;
+  scheduleMode?: string; // everyMinute, everyHour, everyDay, etc.
+  scheduleDetails?: string; // Additional details like time, day, etc.
+}
+
 export interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -66,6 +78,7 @@ export interface WorkflowAnalysis {
   processorNodesCount: number;
   processors: Processor[];
   fetcher?: FetcherNode;
+  triggerNode?: TriggerNode;
 }
 
 // Node type categories
@@ -122,6 +135,78 @@ const SET_TYPES = ['n8n-nodes-base.set'];
 function parseCronExpression(cronExpression: string): string {
   try {
     return cronstrue.toString(cronExpression, { use24HourTimeFormat: true });
+  } catch (error) {
+    return cronExpression;
+  }
+}
+
+/**
+ * Format cron expression in a concise, user-friendly way
+ * Examples: hourly ranges, step intervals, daily, weekly, monthly schedules
+ */
+function formatCronSchedule(cronExpression: string): string {
+  try {
+    const parts = cronExpression.trim().split(/\s+/);
+    if (parts.length < 5) {
+      return cronExpression;
+    }
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
+    // Handle hourly ranges: "10 9-18 * * *"
+    if (hour.includes('-') && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+      const [startHour, endHour] = hour.split('-').map(h => parseInt(h, 10));
+      const min = minute.padStart(2, '0');
+      const start = `${startHour}:${min}`;
+      const end = `${endHour}:${min}`;
+      const frequency = 1;
+      return `${start} - ${end} every ${frequency} hour${frequency > 1 ? 's' : ''}`;
+    }
+
+    // Handle step hours: "0 */2 * * *" (every 2 hours)
+    if (hour.startsWith('*/') && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+      const step = parseInt(hour.substring(2), 10);
+      const min = minute.padStart(2, '0');
+      if (step === 1) {
+        return `Every hour at :${min}`;
+      }
+      return `Every ${step} hours at :${min}`;
+    }
+
+    // Handle daily: "30 14 * * *"
+    if (!hour.includes('*') && !hour.includes('/') && !hour.includes('-') &&
+        dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+      const h = hour.padStart(2, '0');
+      const m = minute.padStart(2, '0');
+      return `${h}:${m} every day`;
+    }
+
+    // Handle every minute: "* * * * *"
+    if (minute === '*' && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+      return 'Every minute';
+    }
+
+    // Handle weekly: "0 9 * * 1" (Monday at 9:00)
+    if (!hour.includes('*') && dayOfMonth === '*' && month === '*' && !dayOfWeek.includes('*')) {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNum = parseInt(dayOfWeek, 10);
+      const dayName = days[dayNum] || dayOfWeek;
+      const h = hour.padStart(2, '0');
+      const m = minute.padStart(2, '0');
+      return `${h}:${m} every ${dayName}`;
+    }
+
+    // Handle monthly: "0 9 1 * *" (1st of month at 9:00)
+    if (!hour.includes('*') && !dayOfMonth.includes('*') && month === '*' && dayOfWeek === '*') {
+      const h = hour.padStart(2, '0');
+      const m = minute.padStart(2, '0');
+      const day = parseInt(dayOfMonth, 10);
+      const suffix = day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th';
+      return `${h}:${m} on ${day}${suffix} of every month`;
+    }
+
+    // Fallback to cronstrue
+    return parseCronExpression(cronExpression);
   } catch (error) {
     return cronExpression;
   }
@@ -357,6 +442,87 @@ function extractFetcherNode(nodes: N8nNode[]): FetcherNode | undefined {
 }
 
 /**
+ * Extract detailed trigger node information
+ */
+function extractTriggerNode(nodes: N8nNode[]): TriggerNode | undefined {
+  if (!nodes || nodes.length === 0) {
+    return undefined;
+  }
+
+  // Find the first trigger node
+  const triggerNode = nodes.find(node =>
+    TRIGGER_TYPES.some(type => node.type === type)
+  );
+
+  if (!triggerNode) {
+    return undefined;
+  }
+
+  const params = triggerNode.parameters || {};
+  const trigger: TriggerNode = {
+    id: triggerNode.id,
+    name: triggerNode.name,
+    type: triggerNode.type,
+    triggerType: 'manual' // default
+  };
+
+  // Handle Schedule Trigger
+  if (triggerNode.type === 'n8n-nodes-base.scheduleTrigger' ||
+      triggerNode.type === 'n8n-nodes-base.cronTrigger') {
+    trigger.triggerType = 'schedule';
+
+    // Check for cron expression
+    if (params.rule?.interval) {
+      const interval = params.rule.interval;
+      if (Array.isArray(interval) && interval.length > 0) {
+        const cronExpr = interval[0].expression;
+        if (cronExpr) {
+          trigger.cronExpression = cronExpr;
+          trigger.humanReadable = formatCronSchedule(cronExpr);
+        }
+      }
+    }
+
+    // Check for simple schedule (minutes, hours, days)
+    if (params.triggerTimes) {
+      const triggerTimes = params.triggerTimes;
+      trigger.scheduleMode = triggerTimes.mode;
+
+      if (triggerTimes.mode === 'everyMinute') {
+        trigger.humanReadable = 'Every minute';
+      } else if (triggerTimes.mode === 'everyHour') {
+        trigger.humanReadable = `Every hour at ${triggerTimes.minute || '00'} minutes`;
+        trigger.scheduleDetails = `At minute ${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyDay') {
+        trigger.humanReadable = `Every day at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+        trigger.scheduleDetails = `At ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyWeek') {
+        trigger.humanReadable = `Every week on ${triggerTimes.weekday || 'Monday'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+        trigger.scheduleDetails = `${triggerTimes.weekday || 'Monday'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      } else if (triggerTimes.mode === 'everyMonth') {
+        trigger.humanReadable = `Every month on day ${triggerTimes.day || '1'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+        trigger.scheduleDetails = `Day ${triggerTimes.day || '1'} at ${triggerTimes.hour || '00'}:${triggerTimes.minute || '00'}`;
+      }
+    }
+  }
+  // Handle Webhook Trigger
+  else if (triggerNode.type === 'n8n-nodes-base.webhook') {
+    trigger.triggerType = 'webhook';
+  }
+  // Handle Email Trigger
+  else if (triggerNode.type === 'n8n-nodes-base.emailTrigger') {
+    trigger.triggerType = 'email';
+  }
+  // Handle Manual Trigger
+  else if (triggerNode.type === 'n8n-nodes-base.manualTrigger' ||
+           triggerNode.type === 'n8n-nodes-base.start') {
+    trigger.triggerType = 'manual';
+  }
+
+  return trigger;
+}
+
+/**
  * Count translation nodes
  */
 function countTranslationNodes(nodes: N8nNode[]): number {
@@ -589,6 +755,7 @@ function extractProcessors(nodes: N8nNode[], connections: any): Processor[] {
 export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
   const processors = extractProcessors(workflow.nodes, workflow.connections);
   const fetcher = extractFetcherNode(workflow.nodes);
+  const triggerNode = extractTriggerNode(workflow.nodes);
 
   return {
     workflowId: workflow.id,
@@ -598,7 +765,8 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
     translationNodesCount: countTranslationNodes(workflow.nodes),
     processorNodesCount: processors.length,
     processors,
-    fetcher
+    fetcher,
+    triggerNode
   };
 }
 

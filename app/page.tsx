@@ -96,6 +96,17 @@ interface FetcherNode {
   downloadAttachments?: boolean;
 }
 
+interface TriggerNode {
+  id: string;
+  name: string;
+  type: string;
+  triggerType: 'schedule' | 'manual' | 'webhook' | 'email';
+  cronExpression?: string;
+  humanReadable?: string;
+  scheduleMode?: string;
+  scheduleDetails?: string;
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -105,6 +116,7 @@ interface WorkflowAnalysis {
   processorNodesCount: number;
   processors: Processor[];
   fetcher?: FetcherNode;
+  triggerNode?: TriggerNode;
 }
 
 export default function Home() {

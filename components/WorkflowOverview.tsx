@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import ProcessorCube from './ProcessorCube';
 import FetcherCube from './FetcherCube';
+import ScheduleTriggerCube from './ScheduleTriggerCube';
 
 interface ProcessorCondition {
   field: string;
@@ -67,6 +68,17 @@ interface FetcherNode {
   downloadAttachments?: boolean;
 }
 
+interface TriggerNode {
+  id: string;
+  name: string;
+  type: string;
+  triggerType: 'schedule' | 'manual' | 'webhook' | 'email';
+  cronExpression?: string;
+  humanReadable?: string;
+  scheduleMode?: string;
+  scheduleDetails?: string;
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -76,6 +88,7 @@ interface WorkflowAnalysis {
   processorNodesCount: number;
   processors: Processor[];
   fetcher?: FetcherNode;
+  triggerNode?: TriggerNode;
 }
 
 interface WorkflowOverviewProps {
@@ -369,6 +382,19 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                       <TableCell colSpan={6} sx={{ py: 0, backgroundColor: 'grey.50' }}>
                         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                           <Box sx={{ py: 2, px: 2 }}>
+                            {/* Schedule Trigger Section */}
+                            {workflow.triggerNode && workflow.triggerNode.triggerType === 'schedule' && (
+                              <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle1" sx={{ fontSize: '0.9rem', fontWeight: 'bold', mb: 1 }}>
+                                  Schedule
+                                </Typography>
+                                <ScheduleTriggerCube
+                                  trigger={workflow.triggerNode}
+                                  workflowId={workflow.workflowId}
+                                />
+                              </Box>
+                            )}
+
                             {/* Fetcher Section */}
                             {workflow.fetcher && (
                               <Box sx={{ mb: 2 }}>
