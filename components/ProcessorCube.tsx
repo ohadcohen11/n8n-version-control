@@ -90,24 +90,13 @@ const SINGLE_VALUE_OPERATIONS = ['exists', 'notExists', 'empty', 'notEmpty', 'tr
 
 // Helper function to strip n8n expression syntax
 const stripExpression = (value: string): string => {
-  if (value.startsWith('={{') && value.endsWith('}}')) {
-    return value.slice(3, -2).trim();
-  } else if (value.startsWith('=')) {
-    return value.slice(1);
-  }
+  // Don't strip anything - return as-is for editing
   return value;
 };
 
 // Helper function to add n8n expression syntax back
 const addExpression = (value: string, originalValue: string): string => {
-  if (!value.trim()) return value;
-  if (value.startsWith('={{') || value.startsWith('=')) return value;
-
-  if (originalValue.startsWith('={{')) {
-    return `={{ ${value} }}`;
-  } else if (originalValue.startsWith('=')) {
-    return `=${value}`;
-  }
+  // Don't add anything - value is already in correct format since we don't strip it
   return value;
 };
 
