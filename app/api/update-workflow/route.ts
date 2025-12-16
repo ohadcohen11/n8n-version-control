@@ -191,6 +191,30 @@ export async function POST(request: Request) {
         field: 'cronExpression',
         expression: value,
       };
+    } else if (field === 'setNodeAssignments') {
+      // Update SET node assignments (add/remove/update variables)
+      if (!workflow.nodes[nodeIndex].parameters) {
+        workflow.nodes[nodeIndex].parameters = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.assignments) {
+        workflow.nodes[nodeIndex].parameters.assignments = {};
+      }
+
+      // Value is an array of assignments
+      const assignments = value as Array<{
+        id: string;
+        name: string;
+        type: string;
+        value: string;
+      }>;
+
+      // Convert to n8n format
+      workflow.nodes[nodeIndex].parameters.assignments.assignments = assignments.map((assignment) => ({
+        id: assignment.id,
+        name: assignment.name,
+        type: assignment.type,
+        value: assignment.value,
+      }));
     }
 
     // Send PUT request to update the workflow

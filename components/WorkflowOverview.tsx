@@ -28,6 +28,7 @@ import {
 import ProcessorCube from './ProcessorCube';
 import FetcherCube from './FetcherCube';
 import ScheduleTriggerCube from './ScheduleTriggerCube';
+import SetNodeCube from './SetNodeCube';
 
 interface ProcessorCondition {
   field: string;
@@ -79,6 +80,18 @@ interface TriggerNode {
   scheduleDetails?: string;
 }
 
+interface SetNode {
+  id: string;
+  name: string;
+  type: string;
+  assignments: Array<{
+    id: string;
+    name: string;
+    type: string;
+    value: string;
+  }>;
+}
+
 interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -90,6 +103,7 @@ interface WorkflowAnalysis {
   fetcher?: FetcherNode;
   triggerNode?: TriggerNode;
   triggerNodes?: TriggerNode[]; // Support multiple trigger nodes
+  setNodes?: SetNode[]; // Standalone SET nodes
 }
 
 interface WorkflowOverviewProps {
@@ -472,6 +486,41 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                                   workflowId={workflow.workflowId}
                                   onUpdate={onUpdate}
                                 />
+                              </Box>
+                            )}
+
+                            {/* Standalone SET Nodes Section */}
+                            {workflow.setNodes && workflow.setNodes.length > 0 && (
+                              <Box sx={{ mb: 3 }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{
+                                    fontSize: '0.95rem',
+                                    fontWeight: 'bold',
+                                    mb: 1.5,
+                                    color: 'rgba(139, 92, 246, 1)',
+                                    letterSpacing: '0.5px',
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Variables ({workflow.setNodes.length})
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                                    gap: 2
+                                  }}
+                                >
+                                  {workflow.setNodes.map((setNode) => (
+                                    <SetNodeCube
+                                      key={setNode.id}
+                                      setNode={setNode}
+                                      workflowId={workflow.workflowId}
+                                      onUpdate={onUpdate}
+                                    />
+                                  ))}
+                                </Box>
                               </Box>
                             )}
 

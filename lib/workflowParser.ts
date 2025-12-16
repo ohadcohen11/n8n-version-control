@@ -72,6 +72,18 @@ export interface TriggerNode {
   scheduleDetails?: string; // Additional details like time, day, etc.
 }
 
+export interface SetNode {
+  id: string;
+  name: string;
+  type: string;
+  assignments: Array<{
+    id: string;
+    name: string;
+    type: string;
+    value: string;
+  }>;
+}
+
 export interface WorkflowAnalysis {
   workflowId: string;
   workflowName: string;
@@ -83,6 +95,7 @@ export interface WorkflowAnalysis {
   fetcher?: FetcherNode;
   triggerNode?: TriggerNode;
   triggerNodes?: TriggerNode[]; // Support multiple trigger nodes
+  setNodes?: SetNode[]; // Standalone SET nodes (not part of IF-SET processors)
 }
 
 // Node type categories
@@ -803,6 +816,71 @@ function extractProcessors(nodes: N8nNode[], connections: any): Processor[] {
 }
 
 /**
+ * Extract standalone SET nodes (not part of IF-SET processor pairs)
+ */
+function extractStandaloneSetNodes(nodes: N8nNode[], connections: any): SetNode[] {
+  const setNodes: SetNode[] = [];
+
+  if (!nodes || nodes.length === 0) {
+    return setNodes;
+  }
+
+  // Get all SET nodes
+  const allSetNodes = nodes.filter(node => SET_TYPES.some(type => node.type === type));
+
+  // Get SET nodes that are part of processors
+  const processorSetNodeNames = new Set<string>();
+  const ifNodes = nodes.filter(node => IF_TYPES.some(type => node.type === type));
+
+  for (const ifNode of ifNodes) {
+    const nodeConnections = connections[ifNode.name];
+    if (nodeConnections && nodeConnections.main) {
+      const outputs = nodeConnections.main;
+      for (const output of outputs) {
+        if (output && Array.isArray(output)) {
+          for (const connection of output) {
+            const connectedNode = nodes.find(n => n.name === connection.node);
+            if (connectedNode && SET_TYPES.some(type => connectedNode.type === type)) {
+              processorSetNodeNames.add(connectedNode.name);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Filter out SET nodes that are part of processors
+  const standaloneSetNodes = allSetNodes.filter(node => !processorSetNodeNames.has(node.name));
+
+  // Build SetNode objects
+  for (const setNode of standaloneSetNodes) {
+    const params = setNode.parameters || {};
+    const assignments: Array<{ id: string; name: string; type: string; value: string }> = [];
+
+    // Extract assignments
+    if (params.assignments?.assignments && Array.isArray(params.assignments.assignments)) {
+      for (const assignment of params.assignments.assignments) {
+        assignments.push({
+          id: assignment.id || assignment.name,
+          name: assignment.name || '',
+          type: assignment.type || 'string',
+          value: String(assignment.value || '')
+        });
+      }
+    }
+
+    setNodes.push({
+      id: setNode.id,
+      name: setNode.name,
+      type: setNode.type,
+      assignments
+    });
+  }
+
+  return setNodes;
+}
+
+/**
  * Analyze a single workflow
  */
 export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
@@ -810,6 +888,7 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
   const fetcher = extractFetcherNode(workflow.nodes);
   const triggerNode = extractTriggerNode(workflow.nodes);
   const triggerNodes = extractTriggerNodes(workflow.nodes);
+  const setNodes = extractStandaloneSetNodes(workflow.nodes, workflow.connections);
 
   return {
     workflowId: workflow.id,
@@ -821,7 +900,8 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
     processors,
     fetcher,
     triggerNode,
-    triggerNodes
+    triggerNodes,
+    setNodes
   };
 }
 
