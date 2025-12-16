@@ -15,7 +15,12 @@ import {
   Alert,
   TableSortLabel,
   IconButton,
-  Collapse
+  Collapse,
+  TextField,
+  InputAdornment,
+  ToggleButtonGroup,
+  ToggleButton,
+  Button
 } from '@mui/material';
 import {
   Schedule as ScheduleIcon,
@@ -23,7 +28,10 @@ import {
   Transform as TransformIcon,
   AccountTree as ProcessorIcon,
   KeyboardArrowDown as ArrowDownIcon,
-  KeyboardArrowRight as ArrowRightIcon
+  KeyboardArrowRight as ArrowRightIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import ProcessorCube from './ProcessorCube';
 import FetcherCube from './FetcherCube';
@@ -121,6 +129,12 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [triggerFilter, setTriggerFilter] = useState<string[]>([]);
+  const [fetcherFilter, setFetcherFilter] = useState<string[]>([]);
+  const [processorFilter, setProcessorFilter] = useState<'all' | 'with' | 'without'>('all');
+
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       // Toggle direction if clicking the same column
@@ -144,13 +158,80 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
     });
   };
 
-  // Sort workflows based on current sort column and direction
-  const sortedWorkflows = useMemo(() => {
+  const handleTriggerFilter = (event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
+    setTriggerFilter(newFilters);
+  };
+
+  const handleFetcherFilter = (event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
+    setFetcherFilter(newFilters);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setTriggerFilter([]);
+    setFetcherFilter([]);
+    setProcessorFilter('all');
+  };
+
+  const hasActiveFilters = searchQuery || triggerFilter.length > 0 || fetcherFilter.length > 0 || processorFilter !== 'all';
+
+  // Get unique trigger and fetcher types
+  const uniqueTriggerTypes = useMemo(() => {
+    const types = new Set<string>();
+    workflows.forEach(w => {
+      if (w.trigger.includes('Manual')) types.add('Manual');
+      else if (w.trigger.includes('Webhook')) types.add('Webhook');
+      else if (w.trigger.includes('Email')) types.add('Email');
+      else if (w.trigger !== 'No trigger found') types.add('Schedule');
+    });
+    return Array.from(types).sort();
+  }, [workflows]);
+
+  const uniqueFetcherTypes = useMemo(() => {
+    const types = new Set<string>();
+    workflows.forEach(w => types.add(w.fetcherType));
+    return Array.from(types).sort();
+  }, [workflows]);
+
+  // Filter and sort workflows
+  const filteredAndSortedWorkflows = useMemo(() => {
+    // Step 1: Apply filters
+    let filtered = workflows.filter(workflow => {
+      // Search filter
+      if (searchQuery && !workflow.workflowName.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // Trigger filter
+      if (triggerFilter.length > 0) {
+        const matchesTrigger = triggerFilter.some(filter => {
+          if (filter === 'Manual') return workflow.trigger.includes('Manual');
+          if (filter === 'Schedule') return !workflow.trigger.includes('Manual') && !workflow.trigger.includes('Webhook') && !workflow.trigger.includes('Email') && workflow.trigger !== 'No trigger found';
+          if (filter === 'Webhook') return workflow.trigger.includes('Webhook');
+          if (filter === 'Email') return workflow.trigger.includes('Email');
+          return false;
+        });
+        if (!matchesTrigger) return false;
+      }
+
+      // Fetcher filter
+      if (fetcherFilter.length > 0 && !fetcherFilter.includes(workflow.fetcherType)) {
+        return false;
+      }
+
+      // Processor filter
+      if (processorFilter === 'with' && workflow.processorNodesCount === 0) return false;
+      if (processorFilter === 'without' && workflow.processorNodesCount > 0) return false;
+
+      return true;
+    });
+
+    // Step 2: Sort
     if (!sortColumn) {
-      return workflows;
+      return filtered;
     }
 
-    const sorted = [...workflows].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       let compareA: string | number = a[sortColumn];
       let compareB: string | number = b[sortColumn];
 
@@ -185,7 +266,7 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
     });
 
     return sorted;
-  }, [workflows, sortColumn, sortDirection]);
+  }, [workflows, sortColumn, sortDirection, searchQuery, triggerFilter, fetcherFilter, processorFilter]);
 
   if (error) {
     return (
@@ -219,6 +300,211 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
 
   return (
     <Box sx={{ width: '100%' }}>
+      {/* Search and Filter Controls */}
+      <Box
+        sx={{
+          mb: 2,
+          p: 2,
+          backgroundColor: 'rgba(17, 25, 40, 0.95)',
+          borderRadius: 2,
+          border: '1px solid rgba(99, 102, 241, 0.2)',
+        }}
+      >
+        {/* Search Bar */}
+        <TextField
+          fullWidth
+          placeholder="Search workflows..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{
+            mb: 2,
+            '& .MuiInputBase-root': {
+              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              color: 'rgba(226, 232, 240, 0.95)',
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'rgba(99, 102, 241, 0.7)' }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchQuery('')}>
+                  <ClearIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        {/* Filter Section */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Trigger Type Filter */}
+          <Box>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'text.secondary', mb: 1 }}>
+              TRIGGER TYPE:
+            </Typography>
+            <ToggleButtonGroup
+              value={triggerFilter}
+              onChange={handleTriggerFilter}
+              sx={{ flexWrap: 'wrap', gap: 1 }}
+            >
+              {uniqueTriggerTypes.map((type) => (
+                <ToggleButton
+                  key={type}
+                  value={type}
+                  sx={{
+                    px: 2,
+                    py: 0.5,
+                    fontSize: '0.75rem',
+                    textTransform: 'none',
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                      color: '#6366f1',
+                      '&:hover': {
+                        backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                      }
+                    }
+                  }}
+                >
+                  {type}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Fetcher Type Filter */}
+          <Box>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'text.secondary', mb: 1 }}>
+              FETCHER TYPE:
+            </Typography>
+            <ToggleButtonGroup
+              value={fetcherFilter}
+              onChange={handleFetcherFilter}
+              sx={{ flexWrap: 'wrap', gap: 1 }}
+            >
+              {uniqueFetcherTypes.map((type) => (
+                <ToggleButton
+                  key={type}
+                  value={type}
+                  sx={{
+                    px: 2,
+                    py: 0.5,
+                    fontSize: '0.75rem',
+                    textTransform: 'none',
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                      color: '#6366f1',
+                      '&:hover': {
+                        backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                      }
+                    }
+                  }}
+                >
+                  {type}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Processor Filter */}
+          <Box>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'text.secondary', mb: 1 }}>
+              PROCESSORS:
+            </Typography>
+            <ToggleButtonGroup
+              value={processorFilter}
+              exclusive
+              onChange={(_, newValue) => {
+                if (newValue !== null) {
+                  setProcessorFilter(newValue);
+                }
+              }}
+              sx={{ flexWrap: 'wrap', gap: 1 }}
+            >
+              <ToggleButton
+                value="all"
+                sx={{
+                  px: 2,
+                  py: 0.5,
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                    color: '#6366f1',
+                    '&:hover': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                    }
+                  }
+                }}
+              >
+                All
+              </ToggleButton>
+              <ToggleButton
+                value="with"
+                sx={{
+                  px: 2,
+                  py: 0.5,
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                    color: '#6366f1',
+                    '&:hover': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                    }
+                  }
+                }}
+              >
+                With Processors
+              </ToggleButton>
+              <ToggleButton
+                value="without"
+                sx={{
+                  px: 2,
+                  py: 0.5,
+                  fontSize: '0.75rem',
+                  textTransform: 'none',
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                    color: '#6366f1',
+                    '&:hover': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                    }
+                  }
+                }}
+              >
+                Without Processors
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                Showing {filteredAndSortedWorkflows.length} of {workflows.length} workflows
+              </Typography>
+              <Button
+                startIcon={<ClearIcon />}
+                onClick={clearFilters}
+                size="small"
+                sx={{
+                  color: 'rgba(239, 68, 68, 0.9)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  }
+                }}
+              >
+                Clear Filters
+              </Button>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
       <TableContainer
         sx={{
           mt: 2,
@@ -319,7 +605,25 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedWorkflows.map((workflow) => {
+            {filteredAndSortedWorkflows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No workflows match your filters
+                  </Typography>
+                  {hasActiveFilters && (
+                    <Button
+                      onClick={clearFilters}
+                      size="small"
+                      sx={{ mt: 1 }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredAndSortedWorkflows.map((workflow) => {
               const isExpanded = expandedRows.has(workflow.workflowId);
               const hasProcessors = workflow.processors && workflow.processors.length > 0;
 
@@ -561,7 +865,8 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                   )}
                 </React.Fragment>
               );
-            })}
+            })
+            )}
           </TableBody>
         </Table>
       </TableContainer>
