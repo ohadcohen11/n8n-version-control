@@ -14,8 +14,9 @@ export async function GET() {
       );
     }
 
-    // Fetch all workflows from n8n
-    const response = await axios.get(`${N8N_API_URL}/workflows`, {
+    // Fetch workflows from specific project
+    const PROJECT_ID = 'NOZFy4AGg8mUmx5a';
+    const response = await axios.get(`${N8N_API_URL}/workflows?projectId=${PROJECT_ID}`, {
       headers: {
         'X-N8N-API-KEY': N8N_API_KEY,
       },
