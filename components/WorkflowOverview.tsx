@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -30,7 +29,6 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowRight as ArrowRightIcon,
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
 import ProcessorCube from './ProcessorCube';
@@ -158,11 +156,11 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
     });
   };
 
-  const handleTriggerFilter = (event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
+  const handleTriggerFilter = (_event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
     setTriggerFilter(newFilters);
   };
 
-  const handleFetcherFilter = (event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
+  const handleFetcherFilter = (_event: React.MouseEvent<HTMLElement>, newFilters: string[]) => {
     setFetcherFilter(newFilters);
   };
 
@@ -323,19 +321,21 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
               color: 'rgba(226, 232, 240, 0.95)',
             }
           }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'rgba(99, 102, 241, 0.7)' }} />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearchQuery('')}>
-                  <ClearIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'rgba(99, 102, 241, 0.7)' }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery('')}>
+                    <ClearIcon sx={{ fontSize: '1rem' }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }
           }}
         />
 
