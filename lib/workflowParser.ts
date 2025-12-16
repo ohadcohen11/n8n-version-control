@@ -82,6 +82,7 @@ export interface WorkflowAnalysis {
   processors: Processor[];
   fetcher?: FetcherNode;
   triggerNode?: TriggerNode;
+  triggerNodes?: TriggerNode[]; // Support multiple trigger nodes
 }
 
 // Node type categories
@@ -483,6 +484,33 @@ function extractTriggerNode(nodes: N8nNode[]): TriggerNode | undefined {
     return undefined;
   }
 
+  return buildTriggerNode(triggerNode);
+}
+
+/**
+ * Extract all trigger nodes (supports multiple triggers per workflow)
+ */
+function extractTriggerNodes(nodes: N8nNode[]): TriggerNode[] {
+  if (!nodes || nodes.length === 0) {
+    return [];
+  }
+
+  // Find all trigger nodes
+  const triggerNodes = nodes.filter(node =>
+    TRIGGER_TYPES.some(type => node.type === type)
+  );
+
+  return triggerNodes.map(buildTriggerNode).filter(Boolean) as TriggerNode[];
+}
+
+/**
+ * Build a TriggerNode object from an N8nNode
+ */
+function buildTriggerNode(triggerNode: N8nNode): TriggerNode | undefined {
+  if (!triggerNode) {
+    return undefined;
+  }
+
   const params = triggerNode.parameters || {};
   const trigger: TriggerNode = {
     id: triggerNode.id,
@@ -781,6 +809,7 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
   const processors = extractProcessors(workflow.nodes, workflow.connections);
   const fetcher = extractFetcherNode(workflow.nodes);
   const triggerNode = extractTriggerNode(workflow.nodes);
+  const triggerNodes = extractTriggerNodes(workflow.nodes);
 
   return {
     workflowId: workflow.id,
@@ -791,7 +820,8 @@ export function analyzeWorkflow(workflow: N8nWorkflow): WorkflowAnalysis {
     processorNodesCount: processors.length,
     processors,
     fetcher,
-    triggerNode
+    triggerNode,
+    triggerNodes
   };
 }
 

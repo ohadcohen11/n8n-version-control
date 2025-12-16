@@ -173,6 +173,24 @@ export async function POST(request: Request) {
           operator: cond.operator,
         };
       });
+    } else if (field === 'cronExpression') {
+      // Update schedule trigger cron expression
+      // Cron expression is in parameters.rule.interval[0].expression
+      if (!workflow.nodes[nodeIndex].parameters) {
+        workflow.nodes[nodeIndex].parameters = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.rule) {
+        workflow.nodes[nodeIndex].parameters.rule = {};
+      }
+      if (!workflow.nodes[nodeIndex].parameters.rule.interval) {
+        workflow.nodes[nodeIndex].parameters.rule.interval = [{ field: 'cronExpression' }];
+      }
+
+      // Update the cron expression
+      workflow.nodes[nodeIndex].parameters.rule.interval[0] = {
+        field: 'cronExpression',
+        expression: value,
+      };
     }
 
     // Send PUT request to update the workflow

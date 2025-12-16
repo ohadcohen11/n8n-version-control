@@ -89,6 +89,7 @@ interface WorkflowAnalysis {
   processors: Processor[];
   fetcher?: FetcherNode;
   triggerNode?: TriggerNode;
+  triggerNodes?: TriggerNode[]; // Support multiple trigger nodes
 }
 
 interface WorkflowOverviewProps {
@@ -413,8 +414,8 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                               borderRadius: 1
                             }}
                           >
-                            {/* Schedule Trigger Section */}
-                            {workflow.triggerNode && workflow.triggerNode.triggerType === 'schedule' && (
+                            {/* Schedule Trigger Section - Support Multiple Triggers */}
+                            {workflow.triggerNodes && workflow.triggerNodes.filter(t => t.triggerType === 'schedule').length > 0 && (
                               <Box sx={{ mb: 3 }}>
                                 <Typography
                                   variant="subtitle1"
@@ -427,12 +428,26 @@ export default function WorkflowOverview({ workflows, loading, error, onUpdate }
                                     textTransform: 'uppercase'
                                   }}
                                 >
-                                  Schedule
+                                  Schedules ({workflow.triggerNodes.filter(t => t.triggerType === 'schedule').length})
                                 </Typography>
-                                <ScheduleTriggerCube
-                                  trigger={workflow.triggerNode}
-                                  workflowId={workflow.workflowId}
-                                />
+                                <Box
+                                  sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                                    gap: 2
+                                  }}
+                                >
+                                  {workflow.triggerNodes
+                                    .filter(trigger => trigger.triggerType === 'schedule')
+                                    .map((trigger) => (
+                                      <ScheduleTriggerCube
+                                        key={trigger.id}
+                                        trigger={trigger}
+                                        workflowId={workflow.workflowId}
+                                        onUpdate={onUpdate}
+                                      />
+                                    ))}
+                                </Box>
                               </Box>
                             )}
 
